@@ -2,8 +2,8 @@
 if (scrptTypeFull %in% c("Histones", "withReps_PG_and_PTMs")) {
   # (It's not implemented yet for other types of scripts)
   if (!exists("clustDat")) {
-    if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
-      loadFun(clustDat_fl)
+    if (file.exists(backupFls["HeatMaps_data"])) {
+      loadFun(backupFls["HeatMaps_data"])
     } else {
       Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
       #rstudioapi::documentOpen(Src)

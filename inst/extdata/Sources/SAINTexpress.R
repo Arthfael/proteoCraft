@@ -363,12 +363,11 @@ if (saintExprs) {
     #invisible(lapply(names(volcPlot_args2), \(x) { assign(x, volcPlot_args2[[x]], envir = .GlobalEnv); return() }))
     tempVPip <- do.call(Volcano.plot, volcPlot_args2)
     #
-    if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
-    if ((!exists("volcPlotly")) && file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) }
+    if ((!exists("volcPlotly")) && file.exists(backupFls["Vulcan"])) { loadFun(backupFls["Vulcan"]) }
     if (!exists("volcPlotly")) { volcPlotly <- list() }
     volcPlotly[["SAINTexpress"]] <- tempVPip$`Plotly plots`
-    saveFun(volcPlotly, volcPlotly_fl)
-    #loadFun(volcPlotly_fl)
+    saveFun(volcPlotly, backupFls["Vulcan"])
+    #loadFun(backupFls["Vulcan"])
     #
     # Save plotly plots
     dr <- saintDir

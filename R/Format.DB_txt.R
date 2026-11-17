@@ -119,14 +119,15 @@ Format.DB_txt <- function(txt,
     }), paste0("Batch", 1L:length(RG)))
   } else { batChes <- list(Batch1 = txt) }
   nBatches <- length(batChes)
-  currWD <- getwd()
   if (usePar) {
+    tmpFls <- vapply(1L:nBatches, \(x) { tempfile(fileext = ".RDS") }, "")
+    parallel::clusterExport(parClust, "tmpFls", envir = environment())
     invisible(lapply(1L:nBatches, \(i) {
-      readr::write_rds(batChes[[i]], paste0(currWD, "/tmp", i, ".RDS"))
+      readr::write_rds(batChes[[i]], tmpFls[i])
     }))
   }
   F0 <- \(i) { #i <- 1L
-    btch <- if (usePar) { readr::read_rds(paste0(currWD, "/tmp", i, ".RDS")) } else { batChes[[i]] }
+    btch <- if (usePar) { readr::read_rds(tmpFls[i]) } else { batChes[[i]] }
     # UniProtKB IDs
     g1 <- grep("^ID ", btch)
     tbl <- data.frame(ID = btch[g1])
@@ -427,14 +428,12 @@ Format.DB_txt <- function(txt,
   if (usePar) {
     environment(F0) <- .GlobalEnv
     exports <- list("GO", "Taxonomy", "InterPro", "Pfam", "PIRSF", "PROSITE", "EMBL", "Ensembl", "MW", "Sequence", "PTMs",
-                    "PDB", "TAIR", "WormBase", "FlyBase", "Features", "Feat_isoRgx", "usePar", "filter", "TESTING", "currWD")
+                    "PDB", "TAIR", "WormBase", "FlyBase", "Features", "Feat_isoRgx", "usePar", "filter", "TESTING")
     parallel::clusterExport(cl, exports, envir = environment())
     rsTbl <- parallel::parLapply(cl, 1L:nBatches, F0)
   } else { rsTbl <- lapply(1L:nBatches, F0) }
   if (usePar) {
-    invisible(lapply(1L:nBatches, \(i) {
-      unlink(paste0(currWD, "/tmp", i, ".RDS"))
-    }))
+    unlink(tmpFls)
   }
   rsTbl <- plyr::rbind.fill(rsTbl)
   if (MW) { rsTbl$"MW (Da)" <- as.numeric(gsub(";.*", "", rsTbl$"MW (Da)")) }

@@ -16,7 +16,7 @@ if (Update_Prot_matches) {
   if (Reuse_Prot_matches) {
     msg <- paste0("Re-load", msg)
     cat(msg)
-    if (!exists("evmatch")) { loadFun(paste0(wd, "/evmatch.RDS")) }
+    if (!exists("evmatch")) { loadFun(backupFls["evmatch"]) }
     Pep2Prot <- evmatch
   } else {
     msg <- paste0("Check", msg)
@@ -86,7 +86,7 @@ Discrepancies with the original search engine matches can have several causes:
   if (!Reuse_Prot_matches) {
     # Save in case you need to reload:
     evmatch <- ev[, c("Sequence", "Proteins")]
-    saveFun(evmatch, file = paste0(wd, "/evmatch.RDS"))
+    saveFun(evmatch, backupFls["evmatch"])
   }
 } else {
   kol <- base::intersect(c("Leading proteins", "Proteins"), colnames(ev))
@@ -114,12 +114,14 @@ if (l) {
     tmpDB$Sequence <- gsub("I", "L", tmpDB$Sequence)
   }
   source(parSrc) # Check cluster for corruption!
-  readr::write_rds(tmpEV, paste0(wd, "/tmpEV.RDS"))
-  readr::write_rds(tmpDB, paste0(wd, "/tmpDB.RDS"))
-  parallel::clusterExport(parClust, "wd", envir = environment())
+  tmpFl1 <- tempfile(fileext = ".RDS")
+  tmpFl2 <- tempfile(fileext = ".RDS")
+  readr::write_rds(tmpEV, tmpFl1)
+  readr::write_rds(tmpDB, tmpFl2)
+  parallel::clusterExport(parClust, list("tmpFl1", "tmpFl2"), envir = environment())
   invisible(parallel::clusterCall(parClust, \() {
-    assign("tmpEV", readr::read_rds(paste0(wd, "/tmpEV.RDS")), envir = .GlobalEnv)
-    assign("tmpDB", readr::read_rds(paste0(wd, "/tmpDB.RDS")), envir = .GlobalEnv)
+    assign("tmpEV", readr::read_rds(tmpFl1), envir = .GlobalEnv)
+    assign("tmpDB", readr::read_rds(tmpFl2), envir = .GlobalEnv)
     return()
   }))
   tmpEV$Proteins <- parallel::parSapply(parClust, 1L:nrow(tmpEV), \(x) {
@@ -131,8 +133,8 @@ if (l) {
     gc()
     return()
   }))
-  unlink("tmpEV.RDS")
-  unlink("tmpDB.RDS")
+  unlink(tmpFl1)
+  unlink(tmpFl2)
   ev$Proteins[w] <- tmpEV$Proteins[match(ev$Sequence[w], tmpEV$Seq)]
   ev <- ev[ev$Proteins != "",]
 }

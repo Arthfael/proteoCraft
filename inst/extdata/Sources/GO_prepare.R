@@ -1,10 +1,8 @@
 # Prepare GO term maps
 if (Annotate) {
   Ontologies %<o% setNames(c("BP", "CC", "MF"), c("Biological Process", "Cell Compartment", "Molecular Function"))
-  if (!exists("GO_mappings_fl")) { GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS") }
-  if (!exists("GO_terms_fl")) { GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS") }
-  if (file.exists(GO_mappings_fl)) { loadFun(GO_mappings_fl) }
-  if (file.exists(GO_terms_fl)) { loadFun(GO_terms_fl) }
+  if (file.exists(backupFls["GO mappings"])) { loadFun(backupFls["GO mappings"]) }
+  if (file.exists(backupFls["GO temps"])) { loadFun(backupFls["GO terms"]) }
   if (!exists("GO_terms")) {
     # Terms from AnnotationDbi
     GO_terms <- AnnotationDbi::select(GO.db::GO.db,
@@ -49,13 +47,14 @@ if (Annotate) {
     })
     GO_terms <- GO_terms[!is.na(GO_terms$Ontology),]
     GO_terms <- GO_terms[order(GO_terms$Ontology),]
-    saveFun(GO_terms, GO_terms_fl)
+    saveFun(GO_terms, backupFls["GO terms"])
+    #loadFun(backupFls["GO terms"])
   }
   GO_terms %<o% GO_terms
-  #loadFun(GO_terms_fl)
   if (!exists("GO_mappings")) {
     GO_mappings <- GO_map(db, cl = parClust)$Mappings
-    saveFun(GO_mappings, GO_mappings_fl)
+    saveFun(GO_mappings, backupFls["GO mappings"])
+    #loadFun(backupFls["GO mappings"])
   }
   GO_mappings %<o% GO_mappings
 }

@@ -7,7 +7,9 @@
 # To do:
 # - Add Pearson correlation heatmap amongst those visualizations used to decide whether to remove any outliers, it is very good!
 #
-if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
+if ((!exists("dimRedPlotLy")) && file.exists(backupFls["dimRed"])) {
+  try({ loadFun(backupFls["dimRed"]) }, silent = TRUE)
+}
 if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
 if (!"peptides" %in% names(dimRedPlotLy)) { dimRedPlotLy$peptides <- list() }
 #
@@ -182,7 +184,7 @@ plot_lyPCA <- plotly::config(plot_lyPCA,
 plot_lyPCA <- plotly::plotly_build(plot_lyPCA)
 #plot_lyPCA <- plotly::partial_bundle(plot_lyPCA)
 dimRedPlotLy$peptides <- list("Samples PCA" = plot_lyPCA)
-saveFun(dimRedPlotLy, file = dimRed_fl)
+saveFun(dimRedPlotLy, backupFls["dimRed"])
 pcaDir <- paste0(wd, "/Workflow control/Peptides/PCA plot")
 if (!dir.exists(pcaDir)) { dir.create(pcaDir, recursive = TRUE) }
 setwd(pcaDir)

@@ -11,8 +11,9 @@ if (exists(".obj")) { rm(".obj") }
 library(proteoCraft)
 # Get local work directory:
 ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
-RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
-if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
+# Obsolete:
+#RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
+#if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
 Script %<o% readr::read_lines(ScriptPath)
 
 RPath %<o% as.data.frame(library()$results)
@@ -157,7 +158,7 @@ Src <- paste0(libPath, "/extdata/Sources/Start_analysis.R")
 source(Src)
 
 setwd(wd)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 #openwd()
 
 # Log the current analysis:
@@ -242,7 +243,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # Check and process Fractions map
 Src <- paste0(libPath, "/extdata/Sources/Fractions_Map_check.R")
@@ -313,7 +314,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 #source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # Filter to keep only PSMs with valid quantitative values:
 Src <- paste0(libPath, "/extdata/Sources/filtPSMs.R")
@@ -342,7 +343,7 @@ ev$"Unique State" <- do.call(paste, c(ev[, c("Modified sequence", "Charge")], se
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 #source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # DIA-only: MS2-based correction of MS1-based quantitative values
 Src <- paste0(libPath, "/extdata/Sources/MS2corr2MS1.R")
@@ -357,7 +358,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - ROC analysis for optimizing a threshold to include/exclude peptides mapped to specific GO terms
 Src <- paste0(libPath, "/extdata/Sources/ROC1.R")
@@ -413,7 +414,7 @@ LocAnalysis2 %<o% FALSE
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 #source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Optionally impute missing peptide intensities
 Src <- paste0(libPath, "/extdata/Sources/pep_Impute.R")
@@ -454,7 +455,7 @@ if (makePepRat) {
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Prepare Annotations and (if applicable) GO terms
 Src <- paste0(libPath, "/extdata/Sources/Annotate_me.R")
@@ -559,7 +560,7 @@ modPepSrc <- paste0(libPath, "/extdata/Sources/modPeptides.R")
 #rstudioapi::documentOpen(modPepSrc)
 source(modPepSrc)
 if (exists("GO_plot_ly")) {
-  saveFun(GO_plot_ly, GO_plot_ly_fl)
+  saveFun(GO_plot_ly, backupFls["GO plots"])
   rm(GO_plot_ly)
 }
 

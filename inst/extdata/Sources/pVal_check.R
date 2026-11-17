@@ -378,7 +378,13 @@ if (dataType %in% c("modPeptides", "PG")) {
   # Get the log2FCs from all methods for comparison
   ratKol <- paste0(ratRef, myContrasts$Contrast)
   if (dataType == "PG") {
-    if (!exists("quantData_list")) { loadFun(myQuantBckpFl) }
+    if (!exists("quantData_list")) {
+      if (exists("accept_PG_reNorm") && accept_PG_reNorm) {
+        loadFun(backupFls["PG_quant_reNorm"])
+      } else {
+        loadFun(backupFls["PG_quant"])
+      }
+    }
     logFCs <- quantData_list$Data[, ratKol, drop = FALSE]
     colnames(logFCs) <- myContrasts$Contrast
     logFCs <- list(make_Rat2 = logFCs)
@@ -486,15 +492,15 @@ if (dataType == "PG") {
   Param$P.values.type <- names(pvalue.col)[pvalue.use]
 }
 if (exists("limmaFits")) {
-  saveFun(limmaFits, limmaFits_fl)
+  saveFun(limmaFits, backupFls["limma"])
   rm(limmaFits)
 }
 if (exists("ROTS_res")) {
-  saveFun(ROTS_res, ROTS_res_fl)
+  saveFun(ROTS_res, backupFls["ROTS"])
   rm(ROTS_res)
 }
 if (exists("MSqRob_infer")) {
-  saveFun(MSqRob_infer, MSqRob_infer_fl)
+  saveFun(MSqRob_infer, backupFls["MSqRob"])
   rm(MSqRob_infer)
 }
 source(parSrc)

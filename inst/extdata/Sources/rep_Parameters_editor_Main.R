@@ -212,8 +212,6 @@ if (Annotate) {
     nrm2GO <- c()
   }
   #
-  GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS")
-  GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS")
 }
 if (!"GO.terms.for.proteins.of.interest" %in% colnames(Param)) { Param$GO.terms.for.proteins.of.interest <- FALSE }
 if (!"Amica" %in% colnames(Param)) { Param$Amica <- TRUE }
@@ -550,7 +548,7 @@ if ("PTM.analysis_NAsReplaceMethod" %in% colnames(Param)) {
   NAsReplMeth %<o% as.integer(Param$PTM.analysis_NAsReplaceMethod)
   if (!NAsReplMeth %in% 1L:2L) { NAsReplMeth <- 2L }
 }
-NAsReplMethods <- c("Impute", # Currently not recommended, until I can work out a much less random Imputation method
+NAsReplMethods <- c("Impute", # Currently not recommended, until I can work out a better Imputation method
                     "Median" # Recommended method
 )
 #
@@ -560,7 +558,7 @@ ROCfilt_GOterms_Pos %<o% c()
 ROCfilt_GOterms_Neg %<o% c()
 annotRep <- Annotate && (scrptType == "withReps")
 if (annotRep) {
-  if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) { loadFun("GO_terms.RDS") }
+  if ((!exists("GO_terms")) && file.exists(backupFls["GO terms"])) { loadFun(backupFls["GO terms"]) }
   if ("ROC.GO.terms" %in% colnames(Param)) {
     Param$ROC_GOterms <- Param$ROC.GO.terms
     Param$ROC.GO.terms <- NULL
@@ -932,8 +930,8 @@ mtchCheckMsg2 <- "!Checking assignments may result in removal of some identifica
 F_test_override <- FALSE
 allHistIDs <- getHistones(db)$All
 allHist <- setNames(protHeads2[allHistIDs], NULL)
-if ((!exists("dimRedPlotLy")) && exists("dimRed_fl") && file.exists(dimRed_fl)) {
-  try({ loadFun(dimRed_fl) }, silent = TRUE)
+if ((!exists("dimRedPlotLy")) && file.exists(backupFls["dimRed"])) {
+  try({ loadFun(backupFls["dimRed"]) }, silent = TRUE)
 }
 appNm <- paste0(dtstNm, " - Parameters")
 make_ui1 <- \() {

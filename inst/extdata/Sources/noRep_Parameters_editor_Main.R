@@ -35,9 +35,9 @@ if ("Kingdom" %in% colnames(db)) {
 KingdomTst %<o% KingdomTst
 isEukaLike %<o% (KingdomTst %in% c("Eukaryota", "Archaea"))
 #
-if (file.exists("AnalysisParam.RDS")) {
+if (file.exists(backupFls["Param"])) {
   tmp <- AnalysisParam
-  loadFun("AnalysisParam.RDS")
+  loadFun(backupFls["Param"])
   for (nm in names(AnalysisParam)) {
     if (!nm %in% names(tmp)) { tmp[[nm]] <- AnalysisParam[[nm]] }
   }
@@ -63,9 +63,6 @@ KlustMeth %<o% 1L # Changed from 2L
 if (Annotate) {
   allGO <- unique(unlist(strsplit(db$GO[!is.na(db$GO)], ";")))
   allGO2 <- paste0("GO:", gsub(".* \\[GO:|\\]$", "", allGO))
-  #
-  GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS")
-  GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS")
 }
 if (!"GO.terms.for.proteins.of.interest" %in% names(AnalysisParam)) { AnalysisParam$GO.terms.for.proteins.of.interest <- FALSE }
 if (!"Custom.PGs" %in% names(AnalysisParam)) { AnalysisParam$Custom.PGs <- "" }

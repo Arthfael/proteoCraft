@@ -3,8 +3,7 @@
 #
 requireNamespace("data.table")
 #
-dimRed_fl %<o% paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
-if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
+if ((!exists("dimRedPlotLy")) && file.exists(backupFls["dimRed"])) { try({ loadFun(backupFls["dimRed"]) }, silent = TRUE) }
 if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
 if (!"PSMs" %in% names(dimRedPlotLy)) { dimRedPlotLy$PSMs <- list() }
 #
@@ -172,7 +171,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
       plot_lyPSMsPCA <- plotly::plotly_build(plot_lyPSMsPCA)
       #plot_lyPSMsPCA <- plotly::partial_bundle(plot_lyPSMsPCA)
       dimRedPlotLy$PSMs <- list("Samples PCA" = plot_lyPSMsPCA)
-      saveFun(dimRedPlotLy, file = dimRed_fl)
+      saveFun(dimRedPlotLy, backupFls["dimRed"])
       setwd(dir)
       htmlwidgets::saveWidget(plotly::partial_bundle(plot_lyPSMsPCA), paste0(dir, "/", ttl, ".html"))
       #htmlwidgets::saveWidget(plot_lyPSMsPCA, paste0(dir, "/", ttl, ".html"))

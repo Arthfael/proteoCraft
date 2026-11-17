@@ -8,10 +8,10 @@ Height <- 500L
 HEIGHT <- paste0(as.character(Height, "px"))
 # Defaults
 try({
-  loadFun(heatMaps_fl)
-  loadFun(dimRed_fl)
-  loadFun(ggQuantLy_fl)
-  loadFun(ggProfLy_fl)
+  loadFun(backupFls["HeatMaps"])
+  loadFun(backupFls["dimRed"])
+  loadFun(backupFls["quantPlots"])
+  loadFun(backupFls["profilePlots"])
 }, silent = TRUE)
 heatMaps_ON <- exists("plotLeatMaps") && (length(plotLeatMaps) > 0L)
 dimRed_ON <- exists("dimRedPlotLy") && (length(dimRedPlotLy) > 0L)

@@ -29,7 +29,7 @@ if (("Norma.Prot.Ratio" %in% colnames(Param)) && Param$Norma.Prot.Ratio) {
   dirPep <- paste0(wd, "/Workflow control/Peptides/PG-based renorm")
   if (!dir.exists(dirPep)) { dir.create(dirPep, recursive = TRUE) }
   #
-  if (!exists("quantData_list")) { loadFun(myQuantBckpFl) }
+  if (!exists("quantData_list")) { loadFun(backupFls["PG_quant"]) }
   quantData <- quantData_list$Data
   quantData_norm <- quantData
   stopifnot(sum(rownames(quantData) != PG$`Protein IDs`) == 0L)

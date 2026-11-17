@@ -232,12 +232,9 @@ ExpData2$MQ.Exp <- vapply(ExpData2$MQ.Exp, paste, "", collapse = ";")
 appNm <- paste0(dtstNm, " - Exp. map")
 ui <- shiny::fluidPage(
   shinyjs::useShinyjs(),
-  shinyWidgets::setBackgroundColor( # Doesn't work
-    color = c(#"#F8F8FF",
-      "#EBEFF7"),
-    gradient = "linear",
-    direction = "bottom"
-  ),
+  shinyWidgets::setBackgroundColor(color = c("#EBEFF7"),
+                                   gradient = "linear",
+                                   direction = "bottom"),
   shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
                          functions = c("toggleFullScreen")),
   # Dummy, hidden div to load arrow-down icon

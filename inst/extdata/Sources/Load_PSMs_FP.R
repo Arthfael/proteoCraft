@@ -18,22 +18,24 @@ if (length(fpManifestFl_i) == 1L) {
 }
 cat(paste0(" -> FragPipe workflow file: ", fpWorkflowFl_i, "\n"))
 cat(paste0(" -> FragPipe manifest file: ", fpManifestFl_i, "\n"))
-if (exists("ev_FP2MQ")) { rm(ev_FP2MQ) }
-psmsBckpFl_i <- paste0("FragPipe PSMs converted to MQ-like format_", dir_i, ".RDS")
-if (exists("reloadedBckps") && (psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
-  loadFun(psmsBckpFl_i)
-}
-if (!exists("ev_FP2MQ")) {
+# Removing the backups for now:
+# The converter functions are fast enough, and the way the backups are named, # there is a risk they will get mixed up!
+# if (exists("ev_FP2MQ")) { rm(ev_FP2MQ) }
+# psmsBckpFl_i <- paste0("FragPipe PSMs converted to MQ-like format_", dir_i, ".RDS")
+# if (exists("reloadedBckps") && (psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
+#   loadFun(psmsBckpFl_i)
+# }
+# if (!exists("ev_FP2MQ")) {
   cat(" - Processing PSMs...\n")
   source(parSrc)
   ev_FP2MQ <- FP_to_MQ(fpWorkflowFl_i,
                        fpManifestFl_i,
                        FailIfNoQuant = TRUE,
                        cl = parClust)
-  cat(" - Saving...\n")
-  saveFun(ev_FP2MQ, file = psmsBckpFl_i)
+  #cat(" - Saving...\n")
+  #saveFun(ev_FP2MQ, file = psmsBckpFl_i)
   cat(" -> Done!\n")
-}
+#}
 ev_i <- ev_FP2MQ$Evidence
 if ((!"Intensity" %in% colnames(ev_i)) || (!sum(!is.na(ev_i$Intensity))) || (!sum(ev_i$Intensity, na.rm = TRUE))) {
   stop(paste0("You do not appear to have ticked any compatible quantitation method in the Fragpipe search in folder \"",

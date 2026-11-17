@@ -151,7 +151,9 @@ if (lNorm) {
                          "",
                          nrmDr,
                          "PCA plot - final norm.")
-    if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
+    if ((!exists("dimRedPlotLy")) && file.exists(backupFls["dimRed"])) {
+      try({ loadFun(backupFls["dimRed"]) }, silent = TRUE)
+    }
     if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
     if (!"peptides" %in% names(dimRedPlotLy)) { dimRedPlotLy$peptides <- list() }
     tmp <- tst$PlotLy[[aggr]]
@@ -162,7 +164,7 @@ if (lNorm) {
     tmp <- plotly::config(tmp,
                           modeBarButtonsToRemove = c("select2d", "lasso2d"))
     dimRedPlotLy$peptides$"Samples PCA_norm" <- tmp
-    saveFun(dimRedPlotLy, file = dimRed_fl)
+    saveFun(dimRedPlotLy, backupFls["dimRed"])
     #
     # De-log
     newDatLin <- newDat
@@ -191,8 +193,8 @@ if (lNorm) {
     }
     TxtSteps <- paste0(paste(TxtSteps[1L:(l-1L)], collapse = ", "), ", then ", TxtSteps[l])
     #
-    saveFun(pepNorm, paste0(nrmDr, "/pep_intens_norm.RDS"))
+    saveFun(pepNorm, backupFls["pep_intens_norm"])
     rm(pepNorm)
-    #loadFun(paste0(nrmDr, "/pep_intens_norm.RDS"))
+    #loadFun(backupFls["pep_intens_norm"])
   }
 }

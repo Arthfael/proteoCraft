@@ -321,6 +321,6 @@ if (globalGO) {
   }
 }
 if (exists("GO_plot_ly")) {
-  saveFun(GO_plot_ly, GO_plot_ly_fl)
+  saveFun(GO_plot_ly, backupFls["GO plots"])
   rm(GO_plot_ly)
 }

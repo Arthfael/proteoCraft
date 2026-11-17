@@ -59,77 +59,67 @@ if (!exists("matmethTxt")) {
 matmethSec2Nm <- data.frame(Section = names(matmethTxt),
                             Name = c("WetLab", "LCMS", "DatAnalysis"))
 
-if (!exists("xlDat")) { loadFun(paste0(wd, "/Tables/xlDat.RDS")) }
+if (!exists("xlDat")) { loadFun(backupFls["Excel report data"]) }
 peptidoTst <- "All peptidoforms" %in% names(xlDat)
 #
-if (!exists("volcPlotly_fl")) { volcPlotly_fl <- paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
-if (!exists("volcPlotly")) { loadFun(volcPlotly_fl) }
+if (!exists("volcPlotly")) { loadFun(backupFls["Vulcan"]) }
 #
 rat_ON <- exists("ratioPlots")
 if (!rat_ON) {
-  if (!exists("ratioPlots_fl")) { ratioPlots_fl <- paste0(wd, "/Protein plots/ratioPlots.RDS") }
-  rat_ON <- (scrptType == "noReps") && file.exists(ratioPlots_fl)
-  if (rat_ON) { loadFun(ratioPlots_fl) }
+  rat_ON <- (scrptType == "noReps") && file.exists(backupFls["Ratios"])
+  if (rat_ON) { loadFun(backupFls["Ratios"]) }
 }
 if (rat_ON) { rat_ON <- length(ratioPlots) > 0L }
 #
-if (!exists("heatMaps_fl")) { heatMaps_fl <- paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
 heatMaps_ON <- exists("plotLeatMaps")
 if (!heatMaps_ON) {
-  heatMaps_ON <- file.exists(heatMaps_fl)
-  if (heatMaps_ON) { loadFun(heatMaps_fl) }
+  heatMaps_ON <- file.exists(backupFls["HeatMaps"])
+  if (heatMaps_ON) { loadFun(backupFls["HeatMaps"]) }
 }
 if (heatMaps_ON) {
   heatMaps_ON <- exists("plotLeatMaps") && length(plotLeatMaps)
 }
 #
-if (!exists("dimRed_fl")) { dimRed_fl <- paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS") }
 PCA_ON <- exists("dimRedPlotLy")
 if (!PCA_ON) {
-  PCA_ON <- file.exists(dimRed_fl)
-  if (PCA_ON) { loadFun(dimRed_fl) }
+  PCA_ON <- file.exists(backupFls["dimRed"])
+  if (PCA_ON) { loadFun(backupFls["dimRed"]) }
 }
 if (PCA_ON) {
   PCA_ON <- exists("dimRedPlotLy") && (!is.null(dimRedPlotLy$PG$PCA))
 }
 #
-if (!exists("Venn_fl")) { Venn_fl <- paste0(wd, "/Venn diagrams/Venn_plotly.RDS") }
 Venn_ON <- exists("plotly_Venn")
 if (!Venn_ON) {
-  Venn_ON <- file.exists(Venn_fl)
-  if (Venn_ON) { loadFun(Venn_fl) }
+  Venn_ON <- file.exists(backupFls["Venn"])
+  if (Venn_ON) { loadFun(backupFls["Venn"]) }
 }
 if (Venn_ON) {
   Venn_ON <- exists("plotly_Venn") && ("Global, LFQ" %in% names(plotly_Venn))
 }
 #
-if (!exists("covPlots_fl")) { covPlots_fl <- paste0(wd, "/Protein plots/covPlots.RDS") }
 cov_ON <- exists("covPlots")
 if (!cov_ON) {
-  cov_ON <- file.exists(covPlots_fl)
-  if (cov_ON) { loadFun(covPlots_fl) }
+  cov_ON <- file.exists(backupFls["Coverage"])
+  if (cov_ON) { loadFun(backupFls["Coverage"]) }
 }
 if (cov_ON) {
   cov_ON <- length(covPlots) > 0L
 }
 #
 if (runGSEA) {
-  if (!exists("GSEA_plotly_fl")) { GSEA_plotly_fl <- paste0(wd, "/Reg. analysis/GSEA/GSEA_plotly.RDS") }
-  if (!exists("GSEA_plotly")) { loadFun(GSEA_plotly_fl) }
+  if (!exists("GSEA_plotly")) { loadFun(backupFile["GSEA"]) }
 }
 #
 if (runRankAbundPlots) {
-  if (!exists("ggQuantLy_fl")) { ggQuantLy_fl <- paste0(wd, "/Ranked abundance/quantPlots.RDS") }
-  if (!exists("ggQuantLy")) { loadFun(ggQuantLy_fl) }
+  if (!exists("ggQuantLy")) { loadFun(backupFls["quantPlots"]) }
 }
 #
-if (!exists("qcBckUpFl")) { qcBckUpFl <- paste0(wd, "/QC.RDS") }
-if (!exists("QC_plotLys")) { loadFun(qcBckUpFl) }
+if (!exists("QC_plotLys")) { loadFun(backupFls["QC"]) }
 #
 GO_ON <- Annotate && (enrichGO || globalGO)
 if (GO_ON) {
-  if (!exists("GO_plot_ly_fl")) { GO_plot_ly_fl <- paste0(wd, "/Reg. analysis/GO enrich/GO_plot_ly.RDS") }
-  if (!exists("GO_plot_ly")) { loadFun(GO_plot_ly_fl) }
+  if (!exists("GO_plot_ly")) { loadFun(backupFls["GO plots"]) }
 }
 
 plotHght <- paste0(round(screenRes$height*0.75), "px")
@@ -543,7 +533,7 @@ server <- \(input, output, session) {
     XPRTMSG(shiny::em("Exporting .html report(s), this will take a few minutes...", style = "color:green", .noWS = "outside"))
     later::later(\() {
       # Commented attempt at parallelization: this won't work!
-      # We are already extending time in this session to reload the plotly widget lists stored as .RDS, and these are massive.
+      # We are already expending time in this session to reload the plotly widget lists stored as .RDS, and these are massive.
       # We risk not saving much time AND exploding our RAM usage beyong possible.
       # source(parSrc)
       # parallel::clusterExport(parClust, obj2Xport, envir = environment()) # This would have been insufficient, we need to export more objects

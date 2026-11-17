@@ -57,7 +57,6 @@ if ((exists("PTMs_pep"))&&(length(PTMs_pep))) {
 if (scrptMtch == 1L) { II <- II[1L:length(II)] } # For now
 VennDir <- paste0(wd, "/Venn diagrams")
 if (!dir.exists(VennDir)) { dir.create(VennDir, recursive = TRUE) }
-Venn_fl %<o% paste0(VennDir, "/Venn_plotly.RDS")
 for (ii in II) { #ii <- II[1L] #ii <- II[2L] #ii <- II[3L]
   if ((scrptMtch == 2L)&&(ii == 1L)) { # For now, we may extend to withReps_PTMs_only later
     dir <- VennDir
@@ -430,4 +429,4 @@ for (nm in names(plotly_Venn)) { #nm <- names(plotly_Venn)[1L]
   plotly_Venn[[nm]] <- plotly::config(p,
                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
 }
-saveFun(plotly_Venn, Venn_fl)
+saveFun(plotly_Venn, backupFls["Venn"])

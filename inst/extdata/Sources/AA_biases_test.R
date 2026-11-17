@@ -29,7 +29,7 @@ setwd(qcDir)
 htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(qcDir, "/", ttl, ".html"), selfcontained = TRUE)
 #htmlwidgets::saveWidget(plotLy, paste0(qcDir, "/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
-if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
+if ((!exists("QC_plotLys")) && file.exists(backupFls["QC"])) { loadFun(backupFls["QC"]) }
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys[[ttl]] <- plotLy
-saveFun(QC_plotLys, qcBckUpFl)
+saveFun(QC_plotLys, backupFls["QC"])

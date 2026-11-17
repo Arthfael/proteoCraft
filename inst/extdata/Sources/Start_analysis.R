@@ -57,293 +57,293 @@ WorkFlows %<o% eval(parse(text = sub("^###-\\|-### *Workflows: *", "",
                                           readr::read_lines(ScriptPath), value = TRUE))),
                     envir = .GlobalEnv)
 stopifnot(length(WorkFlows) > 0L) # This would mean that when ScriptPath was captured we had the wrong script open in the RStudio window!
-if (!RunByMaster) {
-  locDirsFl2 <- paste0(homePath, "/Default_locations.xlsx")
-  flTst <- file.exists(locDirsFl2)
-  if (!flTst) { file.copy(paste0(RPath, "/proteoCraft/extdata/Default_locations.xlsx"), locDirsFl2) }
-  dirTbl <- openxlsx2::read_xlsx(locDirsFl2)
-  if (is.na(dirTbl$Path[match("Temporary folder", dirTbl$Folder)])) {
-    dirTbl$Path[match("Temporary folder", dirTbl$Folder)] <- homePath
-    
-    wb <- openxlsx2::wb_workbook()
-    wb <- openxlsx2::wb_add_worksheet(wb, "Default_folders")
-    nr <- nrow(dirTbl)
-    nc <- ncol(dirTbl)
-    wb <- openxlsx2::wb_add_data_table(wb, "Default_folders",
-                                       dirTbl, table_style = "TableStyleMedium5")
-    wb <- openxlsx2::wb_add_font(wb, "Default_folders",
-                                 openxlsx2::wb_dims(1L, 1L:nc),
-                                 bold = TRUE, underline = "single")
-    wb <- openxlsx2::wb_add_font(wb, "Default_folders",
-                                 openxlsx2::wb_dims(1L:nr + 1L, match("Path", colnames(dirTbl))),
-                                 name = "Consolas", italic = TRUE)
-    wb <- openxlsx2::wb_add_font(wb, "Default_folders",
-                                 openxlsx2::wb_dims(1L:nr + 1L, match("Help", colnames(dirTbl))),
-                                 italic = TRUE)
-    wb <- openxlsx2::wb_add_cell_style(wb, "Default_folders",
-                                       openxlsx2::wb_dims(1L:(nr+1L), 1L:nc),
-                                       horizontal = "left", vertical = "top", wrap_text = TRUE)
-    wb <- openxlsx2::wb_set_col_widths(wb, "Default_folders",
-                                       match(c("Folder", "Path", "Help"), colnames(dirTbl)),
-                                       c(25L, 60L, 150L))
-    openxlsx2::wb_save(wb, locFile2, TRUE)
-    #openxlsx2::xl_open(locFile)
-  }
-  m <- match(c("Search folder", "Results delivery folder", "Archive folder"), dirTbl$Folder)
-  dirTbl2 <- setNames(dirTbl$Path[m], paste0(dirTbl$Folder[m], " (", dirTbl$Path[m], ")"))
-  dirTbl2 <- c(dirTbl2, shinyFiles::getVolumes()()) # this makes the directory at the base of your computer.
-  if (exists("inDirs")) {
-    tst <- vapply(dirTbl2, \(rt) {
-      sum(vapply(inDirs, \(indir) {
-        grepl(topattern(rt), indir)
-      }, TRUE)) > 0L
-    }, TRUE)
-    dirTbl2 <- c(dirTbl2[tst][order(nchar(dirTbl2[tst]), decreasing = TRUE)],
-                 dirTbl2[!tst])
-  }
-  if (!exists("WhoAmI")) { WhoAmI <- Sys.getenv("USERNAME") }
-  #
-  # outRoot <- dirTbl2[c(grep("^Results delivery folder ", names(dirTbl2)),
-  #                      grep("^Archive folder ", names(dirTbl2)),
-  #                      grep("^Results delivery folder |^Archive folder ", names(dirTbl2), invert = TRUE))]
-  if ((!exists("WorkFlow")) || is.null(WorkFlow) || (length(WorkFlow) != 1L) || (!WorkFlow %in% c(WorkFlows, names(WorkFlows)))) {
-    WorkFlow <- WorkFlows[1L]
-  } else {
-    #if (scrptType == "withReps") { # Commented because this should apply to both, if incorrect change to if (scrptType == "noReps") {
-    if ((!WorkFlow %in% WorkFlows) && (WorkFlow %in% names(WorkFlows))) {
-      WorkFlow <- WorkFlows[WorkFlow]
-    } # Because I was stupid when I created Workflow and Workflows
-    # The former matches a name, not a value, of the latter
-    if (!WorkFlow %in% WorkFlows) { WorkFlow <- WorkFlows[1L] }
-    #}
-  }
-  #
-  if (exists("inDirs")) {
-    inDirs <- inDirs[dir.exists(inDirs)]
-    if (!length(inDirs)) { rm(inDirs) }
-  }
-  if (!exists("inDirs")) { inDirs <- dirTbl2[grep("^Search folder ", names(dirTbl2))[1L]] }
-  defRt <- dirTbl2[match(sub("/.*", "/", dirTbl2[grep("^Search folder ", names(dirTbl2))]), dirTbl2)]
-  tmp <- c("MaxQuant", "DiaNN", "FragPipe", "Proteome Discoverer")
-  SearchSoftware %<o% setNames(gsub(" ", "", toupper(tmp)), tmp)
-  srchSoftOpt <- names(SearchSoftware)
-  #
-  scriptPar <- readr::read_lines(ScriptPath)
-  scriptPar <- gsub("^###-\\|-### *", "", grep("^###-\\|-### *", scriptPar, value = TRUE))
-  appNm <- "Start analysis"
-  dtstNm2 <- gsub(":|\\*|\\?|<|>|\\||/", "-", dtstNm)
-  updt_Type0 <- \(searchDir, default = NULL) {
-    if (is.null(default) || (!default %in% srchSoftOpt)) {
-      fls <- list.files(searchDir)
-      tsv2txt <- length(grep("\\.tsv$", fls))/length(grep("\\.txt$", fls))
-      default <- c(FALSE,
-                   length(grep("\\.log\\.txt$", fls)) > 0L,
-                   length(grep("\\.fp-manifest$", fls)) > 0L,
-                   length(grep("\\.xlsx$", fls)) > 0L)
-      if (!sum(default)) { default[1L] <- TRUE }
-      if (sum(default) > 1L) {
-        w <- which(default)
-        default[w[2L:length(w)]] <- FALSE
-      }
-      default <- srchSoftOpt[default]
+#
+srchSoftOpt <- c("MaxQuant", "DiaNN", "FragPipe", "Proteome Discoverer")
+SearchSoftware %<o% setNames(gsub(" ", "", toupper(srchSoftOpt)),
+                             srchSoftOpt)
+#
+locDirsFl2 <- paste0(homePath, "/Default_locations.xlsx")
+flTst <- file.exists(locDirsFl2)
+if (!flTst) { file.copy(paste0(RPath, "/proteoCraft/extdata/Default_locations.xlsx"), locDirsFl2) }
+dirTbl <- openxlsx2::read_xlsx(locDirsFl2)
+if (is.na(dirTbl$Path[match("Temporary folder", dirTbl$Folder)])) {
+  dirTbl$Path[match("Temporary folder", dirTbl$Folder)] <- homePath
+  wb <- openxlsx2::wb_workbook()
+  wb <- openxlsx2::wb_add_worksheet(wb, "Default_folders")
+  nr <- nrow(dirTbl)
+  nc <- ncol(dirTbl)
+  wb <- openxlsx2::wb_add_data_table(wb, "Default_folders",
+                                     dirTbl, table_style = "TableStyleMedium5")
+  wb <- openxlsx2::wb_add_font(wb, "Default_folders",
+                               openxlsx2::wb_dims(1L, 1L:nc),
+                               bold = TRUE, underline = "single")
+  wb <- openxlsx2::wb_add_font(wb, "Default_folders",
+                               openxlsx2::wb_dims(1L:nr + 1L, match("Path", colnames(dirTbl))),
+                               name = "Consolas", italic = TRUE)
+  wb <- openxlsx2::wb_add_font(wb, "Default_folders",
+                               openxlsx2::wb_dims(1L:nr + 1L, match("Help", colnames(dirTbl))),
+                               italic = TRUE)
+  wb <- openxlsx2::wb_add_cell_style(wb, "Default_folders",
+                                     openxlsx2::wb_dims(1L:(nr+1L), 1L:nc),
+                                     horizontal = "left", vertical = "top", wrap_text = TRUE)
+  wb <- openxlsx2::wb_set_col_widths(wb, "Default_folders",
+                                     match(c("Folder", "Path", "Help"), colnames(dirTbl)),
+                                     c(25L, 60L, 150L))
+  openxlsx2::wb_save(wb, locFile2, TRUE)
+  #openxlsx2::xl_open(locFile)
+}
+m <- match(c("Search folder", "Results delivery folder", "Archive folder"), dirTbl$Folder)
+dirTbl2 <- setNames(dirTbl$Path[m], paste0(dirTbl$Folder[m], " (", dirTbl$Path[m], ")"))
+dirTbl2 <- c(dirTbl2, shinyFiles::getVolumes()()) # this makes the directory at the base of your computer.
+if (exists("inDirs")) {
+  tst <- vapply(dirTbl2, \(rt) {
+    sum(vapply(inDirs, \(indir) {
+      grepl(topattern(rt), indir)
+    }, TRUE)) > 0L
+  }, TRUE)
+  dirTbl2 <- c(dirTbl2[tst][order(nchar(dirTbl2[tst]), decreasing = TRUE)],
+               dirTbl2[!tst])
+}
+if (!exists("WhoAmI")) { WhoAmI <- Sys.getenv("USERNAME") }
+#
+# outRoot <- dirTbl2[c(grep("^Results delivery folder ", names(dirTbl2)),
+#                      grep("^Archive folder ", names(dirTbl2)),
+#                      grep("^Results delivery folder |^Archive folder ", names(dirTbl2), invert = TRUE))]
+if ((!exists("WorkFlow")) || is.null(WorkFlow) || (length(WorkFlow) != 1L) || (!WorkFlow %in% c(WorkFlows, names(WorkFlows)))) {
+  WorkFlow <- WorkFlows[1L]
+} else {
+  #if (scrptType == "withReps") { # Commented because this should apply to both, if incorrect change to if (scrptType == "noReps") {
+  if ((!WorkFlow %in% WorkFlows) && (WorkFlow %in% names(WorkFlows))) {
+    WorkFlow <- WorkFlows[WorkFlow]
+  } # Because I was stupid when I created Workflow and Workflows
+  # The former matches a name, not a value, of the latter
+  if (!WorkFlow %in% WorkFlows) { WorkFlow <- WorkFlows[1L] }
+  #}
+}
+#
+if (exists("inDirs")) {
+  inDirs <- inDirs[dir.exists(inDirs)]
+  if (!length(inDirs)) { rm(inDirs) }
+}
+if (!exists("inDirs")) { inDirs <- dirTbl2[grep("^Search folder ", names(dirTbl2))[1L]] }
+defRt <- dirTbl2[match(sub("/.*", "/", dirTbl2[grep("^Search folder ", names(dirTbl2))]), dirTbl2)]
+#
+scriptPar <- readr::read_lines(ScriptPath)
+scriptPar <- gsub("^###-\\|-### *", "", grep("^###-\\|-### *", scriptPar, value = TRUE))
+appNm <- "Start analysis"
+dtstNm2 <- gsub(":|\\*|\\?|<|>|\\||/", "-", dtstNm)
+updt_Type0 <- \(searchDir, default = NULL) {
+  if (is.null(default) || (!default %in% srchSoftOpt)) {
+    fls <- list.files(searchDir)
+    tsv2txt <- length(grep("\\.tsv$", fls))/length(grep("\\.txt$", fls))
+    default <- c(FALSE,
+                 length(grep("\\.log\\.txt$", fls)) > 0L,
+                 length(grep("\\.fp-manifest$", fls)) > 0L,
+                 length(grep("\\.xlsx$", fls)) > 0L)
+    if (!sum(default)) { default[1L] <- TRUE }
+    if (sum(default) > 1L) {
+      w <- which(default)
+      default[w[2L:length(w)]] <- FALSE
     }
-    return(default)
+    default <- srchSoftOpt[default]
   }
-  if ((!exists("SearchSoft")) || (sum(!SearchSoft %in% names(SearchSoftware))) || (length(SearchSoft) != length(inDirs))) {
-    SearchSoft <- vapply(inDirs, updt_Type0, "")
-  }
-  nr0 <- length(inDirs)
-  inputTbl <- data.frame("Input search folder" = rep("", nr0),
-                         "Value" = inDirs,
-                         "Search engine" = SearchSoft,
-                         "Remove" = "",
-                         check.names = FALSE)
-  rownames(inputTbl) <- NULL
-  nr0 <- nrow(inputTbl)
-  rng0 <- as.character(1L:nr0)
-  inputTbl2 <- inputTbl
-  inputTbl2$`Input search folder` <- vapply(paste0("selectDir___", rng0), \(id) {
-    as.character(shiny::actionButton(id, "Select input"))
-  }, "")
-  fSlct0 <- \(i, data = inputTbl, opt = srchSoftOpt) {
-    srchSoftOpt2 <- paste0("<option value=\"", opt, "\"",
-                           c("", " selected")[(opt == data$"Search engine"[i])+1],
-                           ">", opt, "</option>", collapse = "")
-    return(paste0("<select id=\"searchSoft___", as.character(i),
-                  "\" style=\"width:200px;\">", srchSoftOpt2, "</select>"))
-  }
-  inputTbl2$"Search engine" <- vapply(1L:nr0, fSlct0, "") # not rng0 here!
-  inputTbl2$Remove <- vapply(paste0("removeMe___", rng0), \(id) {
-    as.character(shiny::actionButton(id, "Remove dataset"))
-  }, "")
-  colnames(inputTbl2)[4] <- ""
-  #
-  ui <- shiny::shinyUI(
-    shiny::fluidPage(
-      shinyjs::useShinyjs(),
-      shinyWidgets::setBackgroundColor( # Doesn't work
-        color = c(#"#F8F8FF",
-          "#EBEFF7"),
-        gradient = "linear",
-        direction = "bottom"
-      ),
-      shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
-                             functions = c("toggleFullScreen")),
-      shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
-      shiny::titlePanel(shiny::tag("u", "Start analysis"),
-                        appNm),
-      shiny::mainPanel(
-        shiny::sidebarLayout(
-          shiny::sidebarPanel(
-            shiny::textInput("Who", "Enter your name?", WhoAmI, "100%"),
-            shiny::h5(shiny::em("For traceability only: your name will be written into a tab of the output Excel table created by this workflow, so as to keep a trace of who ran their analysis.")),
-            shiny::br(),
-            shiny::textInput("dtstNm", "Enter a name for this project or analysis:", dtstNm, "100%"),
-            shiny::br(),
-            shiny::uiOutput("Workflows"),
-            shiny::numericInput("vCPUs", "Number of available vCPUs (threads):", N.clust, 1L,  N.clust, 1L),
-            shiny::numericInput("Seed", "Set a seed for reproducible random processes:", mySeed, -Inf, Inf, 1L),
-            shiny::br(),
-            shiny::br()
-          ),
-          shiny::mainPanel(
-            shiny::br(),
-            #shiny::actionButton("indir", "Select input directory"),
-            shiny::h4(shiny::strong("INPUTS")),
-            shiny::br(),
-            shiny::h5("Select output folder from a supported search engine:"),
-            DT::DTOutput("inDirs"),
-            shiny::actionButton("addBtn", "+ add input folder"),
-            shiny::br(),
+  return(default)
+}
+if ((!exists("SearchSoft")) || (sum(!SearchSoft %in% names(SearchSoftware))) || (length(SearchSoft) != length(inDirs))) {
+  SearchSoft <- vapply(inDirs, updt_Type0, "")
+}
+nr0 <- length(inDirs)
+inputTbl <- data.frame("Input search folder" = rep("", nr0),
+                       "Value" = inDirs,
+                       "Search engine" = SearchSoft,
+                       "Remove" = "",
+                       check.names = FALSE)
+rownames(inputTbl) <- NULL
+nr0 <- nrow(inputTbl)
+rng0 <- as.character(1L:nr0)
+inputTbl2 <- inputTbl
+inputTbl2$`Input search folder` <- vapply(paste0("selectDir___", rng0), \(id) {
+  as.character(shiny::actionButton(id, "Select input"))
+}, "")
+fSlct0 <- \(i, data = inputTbl, opt = srchSoftOpt) {
+  srchSoftOpt2 <- paste0("<option value=\"", opt, "\"",
+                         c("", " selected")[(opt == data$"Search engine"[i])+1],
+                         ">", opt, "</option>", collapse = "")
+  return(paste0("<select id=\"searchSoft___", as.character(i),
+                "\" style=\"width:200px;\">", srchSoftOpt2, "</select>"))
+}
+inputTbl2$"Search engine" <- vapply(1L:nr0, fSlct0, "") # not rng0 here!
+inputTbl2$Remove <- vapply(paste0("removeMe___", rng0), \(id) {
+  as.character(shiny::actionButton(id, "Remove dataset"))
+}, "")
+colnames(inputTbl2)[4] <- ""
+#
+ui <- shiny::shinyUI(
+  shiny::fluidPage(
+    shinyjs::useShinyjs(),
+    shinyWidgets::setBackgroundColor( # Doesn't work
+      color = c(#"#F8F8FF",
+        "#EBEFF7"),
+      gradient = "linear",
+      direction = "bottom"
+    ),
+    shinyjs::extendShinyjs(text = jsFun$toggle_full_screen,
+                           functions = c("toggleFullScreen")),
+    shiny::tags$head(shiny::tags$style(shiny::HTML("table {table-layout: fixed;"))), # So table widths can be properly adjusted!
+    shiny::titlePanel(shiny::tag("u", "Start analysis"),
+                      appNm),
+    shiny::mainPanel(
+      shiny::sidebarLayout(
+        shiny::sidebarPanel(
+          shiny::textInput("Who", "Enter your name?", WhoAmI, "100%"),
+          shiny::h5(shiny::em("For traceability only: your name will be written into a tab of the output Excel table created by this workflow, so as to keep a trace of who ran their analysis.")),
+          shiny::br(),
+          shiny::textInput("dtstNm", "Enter a name for this project or analysis:", dtstNm, "100%"),
+          shiny::br(),
+          shiny::uiOutput("Workflows"),
+          shiny::numericInput("vCPUs", "Number of available vCPUs (threads):", N.clust, 1L,  N.clust, 1L),
+          shiny::numericInput("Seed", "Set a seed for reproducible random processes:", mySeed, -Inf, Inf, 1L),
+          shiny::br(),
+          shiny::br()
+        ),
+        shiny::mainPanel(
+          shiny::br(),
+          #shiny::actionButton("indir", "Select input directory"),
+          shiny::h4(shiny::strong("INPUTS")),
+          shiny::br(),
+          shiny::h5("Select output folder from a supported search engine:"),
+          DT::DTOutput("inDirs"),
+          shiny::actionButton("addBtn", "+ add input folder"),
+          shiny::br(),
+          shiny::column(4L,
+                        shiny::checkboxInput("writeRaws", "Copy raw files to delivery folder?", writeRaws)),
+          shiny::column(4L,
+                        shiny::checkboxInput("writeSearch", "Copy search results to delivery folder?", writeSearch)),
+          shiny::column(4L,
+                        shiny::checkboxInput("ProcessedByUs", "Attempt to write interactively a template sample prep text?", ProcessedByUs)),
+          shiny::br(),
+          if (grepl("_PG_", scrptTypeFull)) {
             shiny::column(4L,
-                          shiny::checkboxInput("writeRaws", "Copy raw files to delivery folder?", writeRaws)),
-            shiny::column(4L,
-                          shiny::checkboxInput("writeSearch", "Copy search results to delivery folder?", writeSearch)),
-            shiny::column(4L,
-                          shiny::checkboxInput("ProcessedByUs", "Attempt to write interactively a template sample prep text?", ProcessedByUs)),
-            shiny::br(),
-            if (grepl("_PG_", scrptTypeFull)) {
-              shiny::column(4L,
-                            shiny::checkboxInput("splitByOrg", "Enforce single species per Protein Group?", splitByOrg))
-            },
-            )),
-        shiny::br(),
-        shiny::em("Once you are finished, click "),
-        shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
-        shiny::em(" to continue."),
-        shiny::br(),
-        shiny::em("Saving is only possible once:"),
-        shiny::br(),
-        shiny::em(" - a valid dataset name is entered,"),
-        shiny::br(),
-        shiny::em(" - valid in- and output directories are selected."),
-        shiny::br()
-      )))
-  #eval(parse(text = run_App), envir = .GlobalEnv)
-  slctDirXprs <- expression({
-    dat <- INPUTTBL()
-    nr <- nrow(dat)
-    rg <- 1L:nr
-    rg0 <- rg[rg != i]
-    drs <- dat$Value[rg0]
-    dflt <- dat$Value[i]
-    if (!dir.exists(dflt)) { dflt <- rev(drs[dir.exists(drs)]) }
-    if (!length(dflt)) { dflt <- "C:/" }
-    if (length(dflt) > 1L) { dflt <- dflt[1L] }
-    dr <- rstudioapi::selectDirectory(paste0("Select ",
-                                             c("", "additional ")[(i > 1L) + 1L],
-                                             "input folder"),
-                                      path = dflt)
-    if ((length(dr) == 1L) && (!is.na(dr)) && dir.exists(dr)) {
-      if (dr %in% drs) {
-        warning("You already selected this directory! Ignoring...")
-      } else {
-        dat2 <- INPUTTBL2()
-        dat$Value[i] <- dat2$Value[i] <- dr
-        cat("")
-        tp <- updt_Type0(dr)
-        dat$"Search engine"[i] <- tp
-        INPUTTBL(dat)
-        assign("inputTbl", dat, envir = .GlobalEnv)
-        dat2$"Search engine"[i] <- fSlct0(i, dat)
-        INPUTTBL2(dat2)
-        assign("inputTbl2", dat2, envir = .GlobalEnv)
-        output$inDirs <- updt_inDirs()
-      }
-    }
-  })
-  #eval(parse(text = run_App), envir = .GlobalEnv)
-  srchSoftXprs <- expression({
-    dat <- INPUTTBL()
-    dat$"Search engine"[i] <- evnt$value
-    INPUTTBL(dat)
-    if ("" %in% colnames(dat)) { stop() }
-    assign("inputTbl", dat, envir = .GlobalEnv)
-    dat2 <- INPUTTBL2()
-    assign("tmp", fSlct0(i, dat), envir = .GlobalEnv)
-    dat2$"Search engine"[i] <- tmp
-    INPUTTBL2(dat2)
-    assign("inputTbl2", dat2, envir = .GlobalEnv)
-    output$inDirs <- updt_inDirs()
-  })
-  #eval(parse(text = run_App), envir = .GlobalEnv)
-  rmvDirXprs <- expression({
-    dat <- INPUTTBL()
-    nr <- nrow(dat)
-    w <- which(1L:nr != i)
-    if (length(w)) { # Can't remove all!!!
-      dat <- dat[w,]
+                          shiny::checkboxInput("splitByOrg", "Enforce single species per Protein Group?", splitByOrg))
+          },
+        )),
+      shiny::br(),
+      shiny::em("Once you are finished, click "),
+      shinyWidgets::actionBttn("saveBtn", "Save", icon = shiny::icon("save"), color = "success", style = "pill"),
+      shiny::em(" to continue."),
+      shiny::br(),
+      shiny::em("Saving is only possible once:"),
+      shiny::br(),
+      shiny::em(" - a valid dataset name is entered,"),
+      shiny::br(),
+      shiny::em(" - valid in- and output directories are selected."),
+      shiny::br()
+    )))
+#eval(parse(text = run_App), envir = .GlobalEnv)
+slctDirXprs <- expression({
+  dat <- INPUTTBL()
+  nr <- nrow(dat)
+  rg <- 1L:nr
+  rg0 <- rg[rg != i]
+  drs <- dat$Value[rg0]
+  dflt <- dat$Value[i]
+  if (!dir.exists(dflt)) { dflt <- rev(drs[dir.exists(drs)]) }
+  if (!length(dflt)) { dflt <- "C:/" }
+  if (length(dflt) > 1L) { dflt <- dflt[1L] }
+  dr <- rstudioapi::selectDirectory(paste0("Select ",
+                                           c("", "additional ")[(i > 1L) + 1L],
+                                           "input folder"),
+                                    path = dflt)
+  if ((length(dr) == 1L) && (!is.na(dr)) && dir.exists(dr)) {
+    if (dr %in% drs) {
+      warning("You already selected this directory! Ignoring...")
+    } else {
+      dat2 <- INPUTTBL2()
+      dat$Value[i] <- dat2$Value[i] <- dr
+      cat("")
+      tp <- updt_Type0(dr)
+      dat$"Search engine"[i] <- tp
       INPUTTBL(dat)
-      if ("" %in% colnames(dat)) { stop() }
       assign("inputTbl", dat, envir = .GlobalEnv)
-      dat2 <- INPUTTBL2()[w,]
-      nr2 <- nrow(dat)
-      rng2 <- as.character(1L:nr2)
-      # Re-generate table with IDs from updated row position
-      dat2$`Input search folder` <- vapply(paste0("selectDir___", rng2), \(id) {
-        as.character(shiny::actionButton(id, "Select input"))
-      }, "")
-      dat2$"Search engine" <- vapply(1L:nr2, fSlct0, "", dat) # not rng2 here!
-      dat2[[4L]] <- vapply(paste0("removeMe___", rng2), \(id) {
-        as.character(shiny::actionButton(id, "Remove dataset"))
-      }, "")
+      dat2$"Search engine"[i] <- fSlct0(i, dat)
       INPUTTBL2(dat2)
       assign("inputTbl2", dat2, envir = .GlobalEnv)
       output$inDirs <- updt_inDirs()
     }
-  })
-  #eval(parse(text = run_App), envir = .GlobalEnv)
-  server <- shiny::shinyServer(\(input, output, session) {
-    WHO <- shiny::reactiveVal(WhoAmI)
-    USECUST <- shiny::reactiveVal(FALSE)
-    DATASETNAME <- shiny::reactiveVal(dtstNm)
-    INPUTTBL <- shiny::reactiveVal(inputTbl)
-    INPUTTBL2 <- shiny::reactiveVal(inputTbl2)
-    # Non-reactive values
-    wrkFlws <- setNames(WorkFlows, NULL)
-    wrkFlw <- setNames(WorkFlow, NULL)
-    #
-    # Reactive functions to update UI
-    updt_inDirs <- \(reactive = TRUE) {
-      if (reactive) { dat2 <- INPUTTBL2() } else { dat2 <- inputTbl2 }
-      return(DT::renderDT({ dat2 },
-                          FALSE,
-                          escape = FALSE,
-                          class = "compact",
-                          selection = "none",
-                          rownames = FALSE,
-                          editable = FALSE,
-                          options = list(dom = "t",
-                                         paging = FALSE,
-                                         ordering = FALSE,
-                                         autoWidth = TRUE,
-                                         columnDefs = list(list(width = "100px", targets = 0L),
-                                                           list(width = "400px", targets = 1L),
-                                                           list(width = "200px", targets = 2L),
-                                                           list(width = "100px", targets = 3L)),
-                                         scrollX = FALSE),
-                          # the callback is essential to capture the inputs in each row
-                          callback = htmlwidgets::JS("
+  }
+})
+#eval(parse(text = run_App), envir = .GlobalEnv)
+srchSoftXprs <- expression({
+  dat <- INPUTTBL()
+  dat$"Search engine"[i] <- evnt$value
+  INPUTTBL(dat)
+  if ("" %in% colnames(dat)) { stop() }
+  assign("inputTbl", dat, envir = .GlobalEnv)
+  dat2 <- INPUTTBL2()
+  assign("tmp", fSlct0(i, dat), envir = .GlobalEnv)
+  dat2$"Search engine"[i] <- tmp
+  INPUTTBL2(dat2)
+  assign("inputTbl2", dat2, envir = .GlobalEnv)
+  output$inDirs <- updt_inDirs()
+})
+#eval(parse(text = run_App), envir = .GlobalEnv)
+rmvDirXprs <- expression({
+  dat <- INPUTTBL()
+  nr <- nrow(dat)
+  w <- which(1L:nr != i)
+  if (length(w)) { # Can't remove all!!!
+    dat <- dat[w,]
+    INPUTTBL(dat)
+    if ("" %in% colnames(dat)) { stop() }
+    assign("inputTbl", dat, envir = .GlobalEnv)
+    dat2 <- INPUTTBL2()[w,]
+    nr2 <- nrow(dat)
+    rng2 <- as.character(1L:nr2)
+    # Re-generate table with IDs from updated row position
+    dat2$`Input search folder` <- vapply(paste0("selectDir___", rng2), \(id) {
+      as.character(shiny::actionButton(id, "Select input"))
+    }, "")
+    dat2$"Search engine" <- vapply(1L:nr2, fSlct0, "", dat) # not rng2 here!
+    dat2[[4L]] <- vapply(paste0("removeMe___", rng2), \(id) {
+      as.character(shiny::actionButton(id, "Remove dataset"))
+    }, "")
+    INPUTTBL2(dat2)
+    assign("inputTbl2", dat2, envir = .GlobalEnv)
+    output$inDirs <- updt_inDirs()
+  }
+})
+#eval(parse(text = run_App), envir = .GlobalEnv)
+server <- shiny::shinyServer(\(input, output, session) {
+  WHO <- shiny::reactiveVal(WhoAmI)
+  USECUST <- shiny::reactiveVal(FALSE)
+  DATASETNAME <- shiny::reactiveVal(dtstNm)
+  INPUTTBL <- shiny::reactiveVal(inputTbl)
+  INPUTTBL2 <- shiny::reactiveVal(inputTbl2)
+  # Non-reactive values
+  wrkFlws <- setNames(WorkFlows, NULL)
+  wrkFlw <- setNames(WorkFlow, NULL)
+  #
+  # Reactive functions to update UI
+  updt_inDirs <- \(reactive = TRUE) {
+    if (reactive) { dat2 <- INPUTTBL2() } else { dat2 <- inputTbl2 }
+    return(DT::renderDT({ dat2 },
+                        FALSE,
+                        escape = FALSE,
+                        class = "compact",
+                        selection = "none",
+                        rownames = FALSE,
+                        editable = FALSE,
+                        options = list(dom = "t",
+                                       paging = FALSE,
+                                       ordering = FALSE,
+                                       autoWidth = TRUE,
+                                       columnDefs = list(list(width = "100px", targets = 0L),
+                                                         list(width = "400px", targets = 1L),
+                                                         list(width = "200px", targets = 2L),
+                                                         list(width = "100px", targets = 3L)),
+                                       scrollX = FALSE),
+                        # the callback is essential to capture the inputs in each row
+                        callback = htmlwidgets::JS("
 // Buttons
 table.on('click', 'button', function() {
   var id = this.id;
@@ -356,166 +356,181 @@ table.on('change', 'select', function() {
   Shiny.setInputValue('dt_event', {type: 'select', id: id, value: val}, {priority: 'event'});
 });
 ")))
+  }
+  shiny::observeEvent(input$dt_event, {
+    evnt <- input$dt_event
+    id <- evnt$id
+    i <- as.integer(sub(".*___", "", id))
+    root <- sub("___.*", "", id)
+    if (evnt$type == "button") {
+      # Directory selection
+      if (root == "selectDir") { eval(slctDirXprs) }
+      # Row removal?
+      if (root == "removeMe") { eval(rmvDirXprs) }
     }
-    shiny::observeEvent(input$dt_event, {
-      evnt <- input$dt_event
-      id <- evnt$id
-      i <- as.integer(sub(".*___", "", id))
-      root <- sub("___.*", "", id)
-      if (evnt$type == "button") {
-        # Directory selection
-        if (root == "selectDir") { eval(slctDirXprs) }
-        # Row removal?
-        if (root == "removeMe") { eval(rmvDirXprs) }
-      }
-      if (evnt$type == "select") {
-        # Software selection
-        if (root == "searchSoft") { eval(srchSoftXprs) }
-      }
-    })
-    shiny::observeEvent(input$addBtn, {
+    if (evnt$type == "select") {
+      # Software selection
+      if (root == "searchSoft") { eval(srchSoftXprs) }
+    }
+  })
+  shiny::observeEvent(input$addBtn, {
+    dat <- INPUTTBL()
+    dat2 <- INPUTTBL2()
+    drs <- dat$Value
+    nr <- length(drs)
+    i <- nr+1
+    iChr <- as.character(i)
+    datDflt <- data.frame("Input search folder" = "",
+                          "Value" = sub("/[^/]+$", "", dat$Value[nr]),
+                          "Search engine" = dat$"Search engine"[nr],
+                          "Remove" = "",
+                          check.names = FALSE)
+    rownames(datDflt) <- NULL
+    dat <- rbind(dat, datDflt)
+    INPUTTBL(dat)
+    if ("" %in% colnames(dat)) { stop() }
+    assign("inputTbl", dat, envir = .GlobalEnv)
+    datDflt$Value <- ""
+    datDflt2 <- datDflt
+    datDflt2$"Input search folder" <- as.character(shiny::actionButton(paste0("selectDir___", iChr), "Select input"))
+    datDflt2$"Search engine" <- fSlct0(i, datDflt)
+    datDflt2$Remove <- as.character(shiny::actionButton(paste0("removeMe___", iChr), "Remove dataset"))
+    colnames(datDflt2)[4] <- ""
+    dat2 <- rbind(dat2, datDflt2)
+    INPUTTBL2(dat2)
+    assign("inputTbl2", dat2, envir = .GlobalEnv)
+    output$inDirs <- updt_inDirs()
+  })
+  #
+  # Initial UI renders
+  output$inDirs <- updt_inDirs(reactive = FALSE)
+  output$Workflows <- shiny::renderUI({
+    lst <- vector("list", 1L)
+    lst[[1L]] <- list(shiny::selectInput("Workflow",
+                                         "Select data analysis workflow",
+                                         wrkFlws,
+                                         wrkFlw,
+                                         width = "100%"))
+    return(lst)
+  })
+  #
+  # Observers
+  shiny::observeEvent(input$Who, { WHO(input$Who) })
+  shiny::observeEvent(input$Workflow, { assign("WorkFlow", input$Workflow, envir = .GlobalEnv) })
+  #
+  shiny::observeEvent(input$dtstNm, {
+    if (nchar(input$dtstNm)) {
+      DATASETNAME(input$dtstNm)
       dat <- INPUTTBL()
-      dat2 <- INPUTTBL2()
-      drs <- dat$Value
-      nr <- length(drs)
-      i <- nr+1
-      iChr <- as.character(i)
-      datDflt <- data.frame("Input search folder" = "",
-                            "Value" = sub("/[^/]+$", "", dat$Value[nr]),
-                            "Search engine" = dat$"Search engine"[nr],
-                            "Remove" = "",
-                            check.names = FALSE)
-      rownames(datDflt) <- NULL
-      dat <- rbind(dat, datDflt)
-      INPUTTBL(dat)
-      if ("" %in% colnames(dat)) { stop() }
-      assign("inputTbl", dat, envir = .GlobalEnv)
-      datDflt$Value <- ""
-      datDflt2 <- datDflt
-      datDflt2$"Input search folder" <- as.character(shiny::actionButton(paste0("selectDir___", iChr), "Select input"))
-      datDflt2$"Search engine" <- fSlct0(i, datDflt)
-      datDflt2$Remove <- as.character(shiny::actionButton(paste0("removeMe___", iChr), "Remove dataset"))
-      colnames(datDflt2)[4] <- ""
-      dat2 <- rbind(dat2, datDflt2)
-      INPUTTBL2(dat2)
-      assign("inputTbl2", dat2, envir = .GlobalEnv)
-      output$inDirs <- updt_inDirs()
-    })
-    #
-    # Initial UI renders
-    output$inDirs <- updt_inDirs(reactive = FALSE)
-    output$Workflows <- shiny::renderUI({
-      lst <- vector("list", 1L)
-      lst[[1L]] <- list(shiny::selectInput("Workflow",
-                                           "Select data analysis workflow",
-                                           wrkFlws,
-                                           wrkFlw,
-                                           width = "100%"))
-      return(lst)
-    })
-    #
-    # Observers
-    shiny::observeEvent(input$Who, { WHO(input$Who) })
-    shiny::observeEvent(input$Workflow, { assign("WorkFlow", input$Workflow, envir = .GlobalEnv) })
-    #
-    shiny::observeEvent(input$dtstNm, {
-      if (nchar(input$dtstNm)) {
-        DATASETNAME(input$dtstNm)
-        dat <- INPUTTBL()
-        if (length(sum(dir.exists(dat$Value)))) { shinyjs::enable("saveBtn") } else { shinyjs::disable("saveBtn") }
-      } else { shinyjs::disable("saveBtn") }
-    })
-    #
-    shiny::observeEvent(input$vCPUs, {
-      assign("N.clust", input$vCPUs, envir = .GlobalEnv)
-    })
-    shiny::observeEvent(input$writeRaws, {
-      #updt_OutDr()
-      assign("writeRaws", input$writeRaws, envir = .GlobalEnv)
-    })
-    shiny::observeEvent(input$Seed, {
-      #updt_OutDr()
-      assign("mySeed", input$Seed, envir = .GlobalEnv)
-    })
-    shiny::observeEvent(input$writeSearch, {
-      assign("writeSearch", input$writeSearch, envir = .GlobalEnv)
-    })
-    shiny::observeEvent(input$ProcessedByUs, {
-      assign("ProcessedByUs", input$ProcessedByUs, envir = .GlobalEnv)
-      ObjNm <- "ProcessedByUs"
-      if ((scrptType == "withReps") && ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) {
-        AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
-        tmp <- AllAnsw[1L, , drop = FALSE]
-        tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
-        tmp$Value <- list(get(ObjNm))
-        m <- match(ObjNm, AllAnsw$Parameter)
-        if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
-        assign("AllAnsw", input$AllAnsw, envir = .GlobalEnv)
-      }
-    })
-    shiny::observeEvent(input$splitByOrg, {
-      assign("splitByOrg", input$splitByOrg, envir = .GlobalEnv)
-    })
-    shiny::observeEvent(input$saveBtn, {
-      WhoAmI <- WHO()
-      if (WhoAmI == "Your name here") { WhoAmI <- NA_character_ }
-      assign("WhoAmI", WhoAmI, envir = .GlobalEnv)
-      assign("dtstNm", DATASETNAME(), envir = .GlobalEnv)
-      assign("WorkFlow", input$Workflow, envir = .GlobalEnv)
-      assign("inputTbl", INPUTTBL(), envir = .GlobalEnv)
-      assign("inDirs", inputTbl$Value, envir = .GlobalEnv)
-      assign("SearchSoft", inputTbl$"Search engine", envir = .GlobalEnv)
-      shiny::stopApp()
-    })
-    shiny::observeEvent(input$cancel, { shiny::stopApp() })
-    session$onSessionEnded(\() { shiny::stopApp() })
+      if (length(sum(dir.exists(dat$Value)))) { shinyjs::enable("saveBtn") } else { shinyjs::disable("saveBtn") }
+    } else { shinyjs::disable("saveBtn") }
   })
-  g <- shiny:::.globals
-  g$appState <- NULL
-  eval(parse(text = run_App), envir = .GlobalEnv)
-  shinyCleanup()
   #
-  #
-  inDirs <- gsub("/+", "/", inDirs)
-  #
-  tst <- gsub("[^A-Za-z0-9]", "", unlist(sapply(c(dtstNm, inDirs), strsplit, "/")))
-  tst <- sum(vapply(tst, TeachingDemos::char2seed, 1, set = FALSE))
-  tst2 <- lapply(unlist(strsplit(WhoAmI, " +")), \(x) {
-    x <- unlist(strsplit(x, ""))
-    return(x[1L:(min(c(2, length(x))))])
+  shiny::observeEvent(input$vCPUs, {
+    assign("N.clust", input$vCPUs, envir = .GlobalEnv)
   })
-  tst2 <- c(vapply(tst2, \(x) { x[[1L]] }, ""),
-            vapply(tst2, \(x) { if (length(x) >= 2L) { x[[2L]] } else { NA } }, ""))
-  tst2 <- tst2[!is.na(tst2)]
-  tst2 <- paste(tst2[1L:(min(c(2L, length(tst2))))], collapse = "")
-  tst3 <- gsub("[a-z, ]", "", dtstNm)
-  projDir %<o% paste0(dirTbl$Path[match("Temporary folder", dirTbl$Folder)], "/", tst2, "_", tst3, "_", tst)
-  #wd %<o% paste0(projDir, "/Proc")
-  wd %<o% projDir
-  if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
-  setwd(projDir)
-  #
-  msg <- c(paste0("Dataset/project name:\n -> ", dtstNm), "",
-           paste0("Script path:\n -> ", ScriptPath), "",
-           paste0("Input director", c("y", "ies")[(length(inDirs) > 1L) + 1L], ":\n -> ", paste(inDirs, collapse = "\n -> ")), "",
-           paste0("Temporary work directory:\n -> ", wd), "",
-           paste0("Seed:\n -> ", mySeed), "",
-           "The data is processed within the temporary work directory, which is meant to have a short path to avoid issues with saving too long paths.",
-           "The script then attempts to copy the files to the final output directory.",
-           "If this fails (e.g. because of too long paths), then you can always manually copy the analysis from the temporary folder.")
-  #cat(paste0(msg, "\n"))
-  svDialogs::dlg_message(msg, "ok", rstudio = TRUE)
-  write(c(msg, ""), paste0(wd, "/Dataset details.txt"))
-  #
-  WorkFlow <- names(WorkFlows)[match(WorkFlow, WorkFlows)]
-}
-SearchSoft %<o% SearchSoftware[SearchSoft]
-if (sum(SearchSoft %in% names(SearchSoftware))) { SearchSoft %<o% SearchSoftware[SearchSoft] } # Because I am stupid!
+  shiny::observeEvent(input$writeRaws, {
+    #updt_OutDr()
+    assign("writeRaws", input$writeRaws, envir = .GlobalEnv)
+  })
+  shiny::observeEvent(input$Seed, {
+    #updt_OutDr()
+    assign("mySeed", input$Seed, envir = .GlobalEnv)
+  })
+  shiny::observeEvent(input$writeSearch, {
+    assign("writeSearch", input$writeSearch, envir = .GlobalEnv)
+  })
+  shiny::observeEvent(input$ProcessedByUs, {
+    assign("ProcessedByUs", input$ProcessedByUs, envir = .GlobalEnv)
+    ObjNm <- "ProcessedByUs"
+    if ((scrptType == "withReps") && ReUseAnsw && (ObjNm %in% AllAnsw$Parameter)) {
+      AllAnsw <- AllAnsw[AllAnsw$Parameter != ObjNm, , drop = FALSE]
+      tmp <- AllAnsw[1L, , drop = FALSE]
+      tmp[, c("Parameter", "Message")] <- c(ObjNm, msg)
+      tmp$Value <- list(get(ObjNm))
+      m <- match(ObjNm, AllAnsw$Parameter)
+      if (is.na(m)) { AllAnsw <- rbind(AllAnsw, tmp) } else { AllAnsw[m,] <- tmp }
+      assign("AllAnsw", input$AllAnsw, envir = .GlobalEnv)
+    }
+  })
+  shiny::observeEvent(input$splitByOrg, {
+    assign("splitByOrg", input$splitByOrg, envir = .GlobalEnv)
+  })
+  shiny::observeEvent(input$saveBtn, {
+    WhoAmI <- WHO()
+    if (WhoAmI == "Your name here") { WhoAmI <- NA_character_ }
+    assign("WhoAmI", WhoAmI, envir = .GlobalEnv)
+    assign("dtstNm", DATASETNAME(), envir = .GlobalEnv)
+    assign("WorkFlow", input$Workflow, envir = .GlobalEnv)
+    assign("inputTbl", INPUTTBL(), envir = .GlobalEnv)
+    assign("inDirs", inputTbl$Value, envir = .GlobalEnv)
+    assign("SearchSoft", inputTbl$"Search engine", envir = .GlobalEnv)
+    shiny::stopApp()
+  })
+  shiny::observeEvent(input$cancel, { shiny::stopApp() })
+  session$onSessionEnded(\() { shiny::stopApp() })
+})
+g <- shiny:::.globals
+g$appState <- NULL
+eval(parse(text = run_App), envir = .GlobalEnv)
+shinyCleanup()
+#
+#
+inDirs <- gsub("/+", "/", inDirs)
+#
+tst <- gsub("[^A-Za-z0-9]", "", unlist(sapply(c(dtstNm, inDirs), strsplit, "/")))
+tst <- sum(vapply(tst, TeachingDemos::char2seed, 1, set = FALSE))
+tst2 <- lapply(unlist(strsplit(WhoAmI, " +")), \(x) {
+  x <- unlist(strsplit(x, ""))
+  return(x[1L:(min(c(2, length(x))))])
+})
+tst2 <- c(vapply(tst2, \(x) { x[[1L]] }, ""),
+          vapply(tst2, \(x) { if (length(x) >= 2L) { x[[2L]] } else { NA } }, ""))
+tst2 <- tst2[!is.na(tst2)]
+tst2 <- paste(tst2[1L:(min(c(2L, length(tst2))))], collapse = "")
+tst3 <- gsub("[a-z, ]", "", dtstNm)
+projDir %<o% paste0(dirTbl$Path[match("Temporary folder", dirTbl$Folder)], "/", tst2, "_", tst3, "_", tst)
+#wd %<o% paste0(projDir, "/Proc")
+wd %<o% projDir
+paramDir %<o% paste0(wd, "/_param")
+bckpsDir %<o% paste0(wd, "/_backups")
+if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
+if (!dir.exists(paramDir)) { dir.create(paramDir, recursive = TRUE) }
+if (!dir.exists(bckpsDir)) { dir.create(bckpsDir, recursive = TRUE) }
+setwd(projDir)
+#
+msg <- c(paste0("Dataset/project name:\n -> ", dtstNm), "",
+         paste0("Script path:\n -> ", ScriptPath), "",
+         paste0("Input director", c("y", "ies")[(length(inDirs) > 1L) + 1L], ":\n -> ", paste(inDirs, collapse = "\n -> ")), "",
+         paste0("Temporary work directory:\n -> ", wd), "",
+         paste0("Seed:\n -> ", mySeed), "",
+         "The data is processed within the temporary work directory, which is meant to have a short path to avoid issues with saving too long paths.",
+         "The script then attempts to copy the files to the final output directory.",
+         "If this fails (e.g. because of too long paths), then you can always manually copy the analysis from the temporary folder.")
+#cat(paste0(msg, "\n"))
+svDialogs::dlg_message(msg, "ok", rstudio = TRUE)
+write(c(msg, ""), paste0(wd, "/Dataset details.txt"))
+#
+WorkFlow <- names(WorkFlows)[match(WorkFlow, WorkFlows)]
+#
+SearchSoft %<o% setNames(SearchSoftware[SearchSoft],
+                         inDirs)
 inDirs %<o% inDirs
 WhoAmI %<o% WhoAmI
 WorkFlow %<o% WorkFlow
-BckUpFl %<o% paste0(wd, "/Backup.RDS")
-qcBckUpFl %<o% paste0(wd, "/QC.RDS")
+backupFls %<o% setNames(paste0(bckpsDir, "/",
+                               c("Backup", "QC", "evmatch", "AnalysisParam", "PG_assembly", "Contrasts", "pep_intens_norm",
+                                 "PG_quant", "PG_quant_reNorm", "PG_quant_imput", "covPlots", "ratioPlots", "HeatMaps",
+                                 "HeatMaps_data", "profilePlots", "quantPlots", "Venn_plotly", "xlDat", "volcPlotly",
+                                 "DimRedPlots", "GSEA_plotly", "GO_plot_ly", "GO_mappings", "GO_terms", "Parsed_annotations",
+                                 "CustPG", "limmaFits", "MSqRob", "ROTS"),
+                               ".RDS"),
+                        c("Main", "QC", "evmatch", "Param", "PG_assembly", "Contrasts", "pep_intens_norm",
+                          "PG_quant", "PG_quant_reNorm", "PG_quant_imput", "Coverage", "Ratios", "HeatMaps",
+                          "HeatMaps_data", "Profile", "Ranked", "Venn", "Excel report data", "Vulcan",
+                          "dimRed", "GSEA", "GO plots", "GO mappings", "GO terms", "Annotations",
+                          "custom PGs", "limma", "MSqRob", "ROTS"))
+#
 RPath <- as.data.frame(library()$results)
 RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
 #
@@ -529,17 +544,15 @@ setwd(wd)
 # We used to save RDS backups with the wrong extension (.RData)
 # So we can re-use these potentially, we will detect them and fix the extension. Let's also ensure we are consistent with capitalization of RDS.
 fls <- c(list.files(wd, "\\.RData$", ignore.case = TRUE, full.names = TRUE),
-         list.files(wd, "\\.rds$", full.names = TRUE))
+         list.files(bckpsDir, "\\.rds$", full.names = TRUE))
 if (length(fls)) {
   fls <- data.frame(path = fls)
   fls$basename <- basename(fls$path)
   fls$name <- sub("\\.(RData|rds)$", "", fls$basename, ignore.case = TRUE)
   fls$dir <- dirname(fls$path)
   fls$replname <- paste0(fls$name, ".RDS")
-  fls$repl <- paste0(fls$dir, "/", fls$replname)
-  w <- which((fls$name %in% c("Backup", "evmatch", "HeatMaps", "quantPlots", "Parsed_annotations", "AnalysisParam", "pep_intens_norm", "profilePlots",
-                              "Pepper_bckp", "PG_assembly", "GO_terms", "GO_mappings", "PG_quant", "PG_quant_reNorm", "Contrasts")) |
-               grepl("converted to MQ-like format", fls$name))
+  fls$repl <- paste0(bckpsDir, "/", fls$replname)
+  w <- which(fls$name %in% sub("\\.RDS$", "", basename(backupFls)))
   if (length(w)) {
     w1 <- w[file.exists(fls$repl[w])]
     if (length(w1)) { # Necessitated because file.exists("a.RDS") returns TRUE even if the file existing is "a.rds" (different case)
@@ -573,58 +586,55 @@ parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 # Detect backups and decide whether to keep them
 #labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 FracMapNm %<o% "Fractions map"
-FracMapPath %<o% paste0(wd, "/", FracMapNm, ".csv")
-intPrtFst %<o% paste0(wd, "/Proteins of interest.fasta")
+FracMapPath %<o% paste0(paramDir, "/", FracMapNm, ".csv")
+intPrtFst %<o% paste0(paramDir, "/Proteins of interest.fasta")
 allBckps %<o% data.frame(Full = FracMapPath,
-                         File = basename(FracMapPath),
                          Role = "Map of MS files to biological samples")
 allBckps$ObjNm <- list("FracMap_reloaded")
 if (scrptType == "withReps") {
   ExpMapNm %<o% "Experiment map"
-  ExpMapPath %<o% paste0(wd, "/", ExpMapNm, ".csv")
-  tmpDF <- data.frame(File = c(basename(ExpMapPath),
-                               "Factors.RData",
-                               "Parameters.csv"),
+  ExpMapPath %<o% paste0(paramDir, "/", ExpMapNm, ".csv")
+  tmpDF <- data.frame(Full = c(ExpMapPath,
+                               paste0(paramDir, "/", c("/Factors.RData",
+                                                       "/Parameters.csv"))),
                       Role = c("Experimental structure map",
                                "Experimental factors",
                                "Analysis parameters"))
   tmpDF$ObjNm <- list("ExpMap",
                       c("Factors", "FactorsLevels"),
                       "Param")
-  tmpDF$Full <- paste0(wd, "/", tmpDF$File)
   allBckps <- rbind(allBckps, tmpDF)
 }
 if (scrptType == "noReps") {
   SamplesMapNm %<o% "Samples map"
-  SamplesMapPath %<o% paste0(wd, "/", SamplesMapNm, ".csv")
+  SamplesMapPath %<o% paste0(paramDir, "/", SamplesMapNm, ".csv")
   allBckps <- rbind(allBckps,
                     data.frame(Full = SamplesMapPath,
-                               File = basename(SamplesMapPath),
                                Role = "Experimental structure map",
                                ObjNm = "SamplesMap"))
 }
-tmpDF <- data.frame(File = c(basename(intPrtFst),
-                             "evmatch.RDS"),
+tmpDF <- data.frame(Full = c(intPrtFst,
+                             backupFls["evmatch"]),
                     Role = c("FASTA of proteins of special interest",
                              "Matches of peptide sequences to parent proteins"),
                     ObjNm = c("prot.list",
                               "evmatch"))
-tmpDF$Full <- paste0(wd, "/", tmpDF$File)
 allBckps <- rbind(allBckps, tmpDF)
-tmp <- lapply(1L:length(inDirs), \(dir_i) {
-  # No need for MQ, it's faster and easier to just reload and do the minimal processing we do
-  if (SearchSoft[dir_i] %in% c("DIANN", "FRAGPIPE")) {
-    m <- match(SearchSoft[dir_i], c("DIANN", "FRAGPIPE"))
-    psmsBckpFl_i <- paste0(c("diaNN", "FragPipe")[m], " PSMs converted to MQ-like format_", dir_i, ".RDS")
-    tmpDF <- data.frame(File = psmsBckpFl_i,
-                        Role = "Processed PSMs",
-                        ObjNm = paste0("ev_", c("DIANN", "FP")[m], "2MQ_", dir_i))
-    tmpDF$Full <- paste0(wd, "/", tmpDF$File)
-    return(tmpDF)
-  }
-})
-tmp <- plyr::rbind.fill(tmp)
-allBckps <- rbind(allBckps, tmp)
+# Below: commented because unsafe if the order of search folders changes!
+# tmp <- lapply(1L:length(inDirs), \(dir_i) {
+#   # No need for MQ, it's faster and easier to just reload and do the minimal processing we do
+#   if (SearchSoft[dir_i] %in% c("DIANN", "FRAGPIPE")) {
+#     m <- match(SearchSoft[dir_i], c("DIANN", "FRAGPIPE"))
+#     psmsBckpFl_i <- paste0(bckpsDir, "/", c("diaNN", "FragPipe")[m], " PSMs converted to MQ-like format_", dir_i, ".RDS")
+#     tmpDF <- data.frame(Full = psmsBckpFl_i,
+#                         Role = "Processed PSMs",
+#                         ObjNm = paste0("ev_", c("DIANN", "FP")[m], "2MQ_", dir_i))
+#     return(tmpDF)
+#   }
+# })
+# tmp <- plyr::rbind.fill(tmp)
+# allBckps <- rbind(allBckps, tmp)
+allBckps$File <- basename(allBckps$Full)
 
 #View(allBckps[!file.exists(allBckps$Full),])
 allBckps <- allBckps[file.exists(allBckps$Full),]
@@ -633,7 +643,7 @@ loadInt %<o% FALSE
 if (nrow(allBckps)) {
   allBckps$Dir <- dirname(allBckps$Full)
   allBckps$Value <- allBckps$File
-  w <- which(allBckps$Dir != wd)
+  w <- which(allBckps$Dir != bckpsDir)
   if (length(w)) { allBckps$Value[w] <- allBckps$Full[w] }
   allBckps$Value <- paste0(do.call(paste, c(allBckps[, c("Role", "Value")], sep = " (file = ")), ")")
   bckps2Reload %<o% svDialogs::dlg_list(allBckps$Value, allBckps$Value, TRUE,
@@ -701,8 +711,9 @@ if (nrow(allBckps)) {
 
 # Clean-up WD to remove all output folders/files/plots/tables before we start?
 drs <- list.dirs(wd, TRUE, FALSE)
+protectDirs <- paste0(wd, "/_", c("param", "backups"))
 drs <- base::setdiff(drs,
-                     c(wd, paste0(wd, "/_param")))
+                     c(wd, protectDirs))
 if (length(drs)) {
   cleanUpWD <- c(TRUE, FALSE)[match(svDialogs::dlg_message("The work directory isn't empty. Should we remove all output data folders? (parameters will remain, but plots and output tables will be deleted)",
                                                            "yesno")$res,
@@ -724,6 +735,22 @@ if (length(drs)) {
     }
   }
 }
+#
+# For when reloading an old analysis folder:
+# Move...
+#  - backups to bckpsDir
+#  - parameters to paramDir
+fls <- list.files(wd, full.names = TRUE, include.dirs = FALSE) # Still includes dirs!!!
+fls <- base::setdiff(fls, list.dirs(wd, full.names = TRUE))
+fls <- grep("\\.(html|xlsx)$", fls, value = TRUE, invert = TRUE)
+fls1 <- fls[basename(fls) %in% basename(backupFls)]
+fls2 <- base::setdiff(fls, fls1)
+if (length(fl1)) {
+  fs::file_move(fls1, sub(topattern(wd), bckpsDir, fls1))
+}
+if (length(fl2)) {
+  fs::file_move(fls2, sub(topattern(wd), paramDir, fls2))
+}
 
 # Re-load fasta of proteins of interest?
 if ((!nrow(reloadedBckps)) || (!"FASTA of proteins of special interest" %in% reloadedBckps$Role)) {
@@ -744,4 +771,4 @@ if ((!nrow(reloadedBckps)) || (!"FASTA of proteins of special interest" %in% rel
 }
 Reuse_Prot_matches %<o% ("Matches of peptide sequences to parent proteins" %in% reloadedBckps$Role)
 #
-saveImgFun(BckUpFl)
+saveImgFun(backupFls["Main"])

@@ -79,7 +79,13 @@ if (dataType == "PG") {
 }
 intRef2 <- sub("log10", "log2", intRef)
 if (limpaMode) {
-  if (!exists("quantData_list")) { loadFun(myQuantBckpFl) }
+  if (!exists("quantData_list")) {
+    if (exists("accept_PG_reNorm") && accept_PG_reNorm) {
+      loadFun(backupFls["PG_quant_reNorm"])
+    } else {
+      loadFun(backupFls["PG_quant"])
+    }
+  }
   myData <- quantData_list$EList_obj
   w <- which(rownames(myData$genes) %in% dat0[[mtchCol]])
   m <- match(rownames(myData$genes)[w], dat0[[mtchCol]])
@@ -299,12 +305,11 @@ volcPlot_args2$cl <- parClust
 F_volc <- do.call(Volcano.plot, volcPlot_args2)
 source(parSrc)
 #
-if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
-if ((!exists("volcPlotly")) && file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) }
+if ((!exists("volcPlotly")) && file.exists(backupFls["Vulcan"])) { loadFun(backupFls["Vulcan"]) }
 if (!exists("volcPlotly")) { volcPlotly <- list() }
 volcPlotly[[volcName]] <- F_volc$`Plotly plots`
-saveFun(volcPlotly, volcPlotly_fl)
-#loadFun(volcPlotly_fl)
+saveFun(volcPlotly, backupFls["Vulcan"])
+#loadFun(backupFls["Vulcan"])
 #
 # Save plotly plots
 dr <- ohDeer

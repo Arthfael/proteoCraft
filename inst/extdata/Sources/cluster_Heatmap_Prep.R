@@ -2,12 +2,10 @@
 #
 clustDir <- paste0(wd, "/Clustering")
 if (!dir.exists(clustDir)) { dir.create(clustDir, recursive = TRUE) }
-heatMaps_fl %<o% paste0(clustDir, "/HeatMaps.RDS")
-clustDat_fl %<o% paste0(clustDir, "/HeatMaps_data.RDS")
 #
 if ((!exists("clustDat")) || (!inherits(clustDat, "list"))) {
-  if (file.exists(clustDat_fl)) {
-    loadFun(clustDat_fl)
+  if (file.exists(backupFls["HeatMaps_data"])) {
+    loadFun(backupFls["HeatMaps_data"])
     if (!inherits(clustDat, "list")) { clustDat <- list() }
   } else {
     clustDat <- list()
@@ -183,5 +181,5 @@ if (dataType == "PG") {
   VClusters %<o% list()
   HClusters %<o% list()
 }
-saveFun(clustDat, clustDat_fl)
-#loadFun(clustDat_fl)
+saveFun(clustDat, backupFls["HeatMaps_data"])
+#loadFun(backupFls["HeatMaps_data"])

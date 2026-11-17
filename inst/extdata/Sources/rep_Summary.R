@@ -23,10 +23,10 @@ tmp <- MQ.summary(ev = ev, pg = PG, wd = wd, mods = mods,
                   raw.files = rawFiles, sc = sc, cl = parClust,
                   MQtxt = inDirs[SearchSoft == "MAXQUANT"])
 Exp_summary %<o% tmp$table
-if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
+if ((!exists("QC_plotLys")) && file.exists(backupFls["QC"])) { loadFun(backupFls["QC"]) }
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
-saveFun(QC_plotLys, qcBckUpFl)
+saveFun(QC_plotLys, backupFls["QC"])
 
 Exp_summary$"Biological sample" <- ""
 if ("Parent sample" %in% colnames(Frac.map)) {

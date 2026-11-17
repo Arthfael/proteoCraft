@@ -628,7 +628,5 @@ Example: \"GO:0031012;2\"
   Script <- readr::read_lines(ScriptPath)
   gc()
   invisible(parallel::clusterCall(parClust, \(x) { rm(list = ls());gc() }))
-  saveImgFun(BckUpFl)
-  #loadFun(BckUpFl)
-  source(parSrc)
+  source(bckpSrc)
 }

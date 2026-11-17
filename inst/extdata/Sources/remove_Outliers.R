@@ -2,7 +2,9 @@
 # Optional: choose whether to remove any outliers  #
 ####################################################
 #View(Exp.map[, c("Ref.Sample.Aggregate", "Use")])
-if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
+if ((!exists("dimRedPlotLy")) && file.exists(backupFls["dimRed"])) {
+  try({ loadFun(backupFls["dimRed"]) }, silent = TRUE)
+}
 #Exp.map$Use <- "TRUE"
 fctrs <- Factors
 Include <- Exp.map[, c(fctrs, "Use")]

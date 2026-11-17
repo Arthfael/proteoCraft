@@ -110,6 +110,9 @@ if (runRankAbundPlots || runProfPlots) {
   colScale2 <- ggplot2::scale_colour_manual(name = "In list", values = myColors2)
   fillScale2 <- ggplot2::scale_fill_manual(name = "In list", values = myColors2)
   #
+  if (GO_filt && (!exists("GO_terms")) && file.exists(backupFls[["GO terms"]])) {
+    loadFun(backupFls[["GO terms"]])
+  }
   if (scrptType == "withReps") {
     PG_ref <- paste0("Mean ", prtRfRoot)
     pep_ref <- paste0("Mean ", pep.ref[length(pep.ref)])
@@ -118,7 +121,6 @@ if (runRankAbundPlots || runProfPlots) {
     GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
     GO_filt %<o% (length(GO_PG_col) > 0L)
     if (GO_filt) {
-      if ((!exists("GO_terms")) && file.exists(paste0(wd, "/GO_terms.RDS"))) { loadFun(paste0(wd, "/GO_terms.RDS")) }
       GO_PG_col <- base::intersect(GO_PG_col, GO_terms$ID)
       GO_filt <- length(GO_PG_col) > 0L
     }
@@ -128,9 +130,6 @@ if (runRankAbundPlots || runProfPlots) {
     PG_ref <- rev(base::setdiff(PG.int.cols, paste0("Imput. ", PG.int.cols["Original"])))[1L]
     pep_ref <- paste0(int.cols["Original"], " - ")
     mySamples <- Exp
-    if (GO_filt) {
-      if ((!exists("GO_terms")) && file.exists(paste0(wd, "/GO_terms.RDS"))) { loadFun(paste0(wd, "/GO_terms.RDS")) }
-    }
   }
   if (GO_filt) {
     names(GO_filter) <- GO_terms$Term[match(GO_filter, GO_terms$ID)]
@@ -366,8 +365,7 @@ if (runRankAbundPlots || runProfPlots) {
       w2 <- whAb[(samplesDF$type[whAb] == "pep") & (samplesDF$QuantType[whAb] == quantType) & (samplesDF$subtype[whAb] == "All")]
       ggQuantLy[[paste0("peptides ", quantType)]] <- setNames(tmPlots[w2], samplesDF$values[w2])
     }
-    ggQuantLy_fl %<o% paste0(MainDir, "/quantPlots.RDS")
-    saveFun(ggQuantLy, ggQuantLy_fl)
+    saveFun(ggQuantLy, backupFls["quantPlots"])
   }
   if (runProfPlots) {
     whPr <- 1L:nrow(samplesDF2)
@@ -387,7 +385,6 @@ if (runRankAbundPlots || runProfPlots) {
         ggProfLy[[paste0("peptides ", quantType)]] <- tmPlots[[w2]]        
       }
     }
-    ggProfLy_fl %<o% paste0(MainDir, "/profilePlots.RDS")
-    saveFun(ggProfLy, ggProfLy_fl)
+    saveFun(ggProfLy, backupFls["profilePlots"])
   }
 }

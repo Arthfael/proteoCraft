@@ -12,8 +12,9 @@ library(proteoCraft)
 #
 # Get local work directory:
 ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
-RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
-if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
+# Obsolete:
+#RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
+#if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
 Script %<o% readLines(ScriptPath)
 
 RPath %<o% as.data.frame(library()$results)
@@ -245,7 +246,7 @@ ev$"Peptide ID" <- NULL
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # Create Materials and Methods template
 Src <- paste0(libPath, "/extdata/Sources/autoMatMet.R")
@@ -394,7 +395,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Create modified peptides table
 Src <- paste0(libPath, "/extdata/Sources/pepMake.R")
@@ -669,7 +670,7 @@ if (MakeRatios) {
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Assemble protein groups
 Src <- paste0(libPath, "/extdata/Sources/PG_AssembleTop.R")
@@ -970,7 +971,7 @@ PG[, colnames(temp)] <- temp
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # Coverage columns
 PG$"1st accession" <- vapply(strsplit(PG$`Leading protein IDs`, ";"), \(x) { unlist(x)[1L] }, "")
@@ -1800,7 +1801,7 @@ if (protrul) {
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Summary table and QC plots
 source(parSrc)
@@ -1809,11 +1810,11 @@ tmp <- MQ.summary(wd = wd, ev = ev, pg = PG, mods = setNames(Modifs$Mark, Modifs
                   cl = parClust, MQtxt = inDirs[SearchSoft == "MAXQUANT"])
 Exp_summary %<o% tmp$table
 write.csv(Exp_summary, paste0(wd, "/Workflow control/Summary.csv"), row.names = FALSE)
-if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
+if ((!exists("QC_plotLys")) && file.exists(backupFls["QC"])) { loadFun(backupFls["QC"]) }
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
 #Exp_summary <- read.csv(paste0(wd, "/Workflow control/Summary.csv"), check.names = FALSE)
-
+#
 # Plot of contamination levels per sample
 tmp <- ev[, c("Proteins", "Intensity", "Experiment")]
 tmp2 <- listMelt(strsplit(tmp$Proteins, ";"), 1L:nrow(tmp), c("Protein", "Row"))
@@ -1859,10 +1860,10 @@ setwd(paste0(wd, "/Summary plots"))
 htmlwidgets::saveWidget(plotly::partial_bundle(plotLy),
                         paste0(wd, "/Summary plots/", ttl, ".html"), selfcontained = TRUE)
 setwd(wd)
-if ((!exists("QC_plotLys")) && file.exists(qcBckUpFl)) { loadFun(qcBckUpFl) }
+if ((!exists("QC_plotLys")) && file.exists(backupFls["QC"])) { loadFun(backupFls["QC"]) }
 if (!exists("QC_plotLys")) { QC_plotLys <- list() }
 QC_plotLys[[ttl]] <- plotLy
-saveFun(QC_plotLys, qcBckUpFl)
+saveFun(QC_plotLys, backupFls["QC"])
 
 # Test for amino acid biases:
 Src <- paste0(libPath, "/extdata/Sources/AA_biases_test.R")
@@ -1872,7 +1873,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Coverage maps for proteins of interest
 Src <- paste0(libPath, "/extdata/Sources/protPlots.R")
@@ -1882,7 +1883,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 ### Check that CytoScape is installed and can run, then launch it.
 #CytoScape <- TRUE #You may need to reset this
@@ -2079,7 +2080,7 @@ source(clstSrc)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - profile plots and ranked abundance plots
 PrfRASrc %<o% paste0(libPath, "/extdata/Sources/profile_and_rankedAbund_plots.R")
@@ -2113,7 +2114,7 @@ if (NegFilt) {
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - XML coverage columns
 Src <- paste0(libPath, "/extdata/Sources/xml_Coverage_columns.R")
@@ -2289,7 +2290,7 @@ temp <- data.frame(Parameter = names(AnalysisParam),
                    Value = vapply(AnalysisParam, \(x) { paste(unlist(x), collapse = ";") }, ""),
                    row.names = NULL)
 write.csv(temp, "Analysis parameters.csv", row.names = FALSE)
-saveFun(AnalysisParam, "AnalysisParam.RDS")
+saveFun(AnalysisParam, backupFls["Param"])
 #
 # Save copy of this script to local work directory
 fs::file_copy(ScriptPath, wd, overwrite = TRUE)
@@ -2297,7 +2298,7 @@ fs::file_copy(ScriptPath, wd, overwrite = TRUE)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # Write PTMs table
 temp <- Modifs
@@ -2328,7 +2329,7 @@ source(Src)
 # Finalize analysis
 Src <- paste0(libPath, "/extdata/Sources/Finalize_analysis.R")
 #rstudioapi::documentOpen(Src)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 source(Src)
 
 ### That's it, done!

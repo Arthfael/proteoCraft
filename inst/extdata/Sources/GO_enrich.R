@@ -248,9 +248,8 @@ if (Mode == "dataset") {
     dataType2 <- dataType
   }
 }
-if (!exists("GO_plot_ly_fl")) { GO_plot_ly_fl %<o% paste0(wd, "/Reg. analysis/GO enrich/GO_plot_ly.RDS") }
 if (!exists("GO_plot_ly")) {
-  if (file.exists(GO_plot_ly_fl))  { loadFun(GO_plot_ly_fl) } else { GO_plot_ly <- list() }
+  if (file.exists(backupFls["GO plots"]))  { loadFun(backupFls["GO plots"]) } else { GO_plot_ly <- list() }
 }
 if (!dataType2 %in% names(GO_plot_ly)) { GO_plot_ly[[dataType2]] <- list() }
 if (Mode == "regulated") { slotNm <- Tsts[tt] }
@@ -1352,7 +1351,7 @@ if (length(wFltL)) {
     }
   }
 }
-saveFun(GO_plot_ly, GO_plot_ly_fl)
+saveFun(GO_plot_ly, backupFls["GO plots"])
 cat("     Done!\n")
 setwd(origWD)
 if (kount) {

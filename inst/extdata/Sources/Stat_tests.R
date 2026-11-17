@@ -12,12 +12,9 @@ samRoots %<o% c(sub(" -log10\\(", " ", sub("\\) - $", " - ", samRoot)),
                 paste0("SAM regulated-FDR=", paste(100*bhFDRs, collapse = "/"), "% FDR - "))
 ebamRoot %<o% paste0("EBAM regulated-FDR=", paste(100*bhFDRs, collapse = "/"), "% FDR - ")
 #
-ROTS_res_fl %<o% paste0(wd, "/Reg. analysis/ROTS.RDS")
-limmaFits_fl %<o% paste0(wd, "/Reg. analysis/limmaFits.RDS")
-MSqRob_infer_fl %<o% paste0(wd, "/Reg. analysis/MSqRob.RDS")
 if (!exists("limmaFits")) {
-  if (file.exists(limmaFits_fl)) {
-    loadFun(limmaFits_fl)
+  if (file.exists(backupFls["limma"])) {
+    loadFun(backupFls["limma"])
   } else {
     limmaFits <- list()
   }
@@ -80,7 +77,15 @@ cat(" -> Statistical tests\n")
 #
 rg <- 1L:((pkgsCheck["DEqMS"] & (dataType == "PG")) + 1L)
 TESTs <- c("limma", "DEqMS")[rg]
-if ((dataType == "PG") && (!exists("quantData_list"))) { loadFun(myQuantBckpFl) }
+if ((dataType == "PG") && (!exists("quantData_list"))) {
+  if (!exists("quantData_list")) {
+    if (exists("accept_PG_reNorm") && accept_PG_reNorm) {
+      loadFun(backupFls["PG_quant_reNorm"])
+    } else {
+      loadFun(backupFls["PG_quant"])
+    }
+  }
+}
 limpaTest <- (dataType == "PG") && ("EList_obj" %in% names(quantData_list))
 if (limpaTest) { TESTs <- c(TESTs, c("limpa->limma", "limpa->DEqMS")[rg]) }
 for (TEST in TESTs) { #TEST <- TESTs[1L] #TEST <- TESTs[2L]
@@ -357,8 +362,8 @@ if (((dataType == "PG") && ("QFeatures_obj" %in% names(quantData_list))) || (dat
                sub(" -log10\\(", " ", sub("\\) - $", " - ", msqrobRoot)), pval)] <- myData[, pval]
   myData[, sub(topattern("MSqRob pval - "), msqrobRoot, pval)] <- -log10(myData[, pval])
   if (!exists("MSqRob_infer")) {
-    if (file.exists(MSqRob_infer_fl)) {
-      loadFun(MSqRob_infer_fl)
+    if (file.exists(backupFls["MSqRob"])) {
+      loadFun(backupFls["MSqRob"])
     } else {
       MSqRob_infer <- list()
     }
@@ -579,8 +584,8 @@ if (length(whSingle)) {
     bioc_req <- base::union(bioc_req, "ROTS")
     cat("   - ROTS tests\n")
     if (!exists("ROTS_res")) {
-      if (file.exists(ROTS_res_fl)) {
-        loadFun(ROTS_res_fl)
+      if (file.exists(backupFls["ROTS"])) {
+        loadFun(backupFls["ROTS"])
       } else {
         ROTS_res <- list()
       }

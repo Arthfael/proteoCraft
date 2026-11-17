@@ -8,6 +8,6 @@ inEnv <- ls()
 rm(list = base::setdiff(inEnv, .obj))
 Script <- readr::read_lines(ScriptPath)
 gc()
-saveImgFun(BckUpFl)
-#loadFun(BckUpFl)
+saveImgFun(backupFls["Main"])
+#loadFun(backupFls["Main"])
 if ("parClust" %in% .obj) { source(parSrc) }

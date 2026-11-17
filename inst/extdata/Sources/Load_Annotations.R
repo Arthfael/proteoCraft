@@ -103,7 +103,7 @@ if (Annotate) {
   tst1 <- unlist(strsplit(Parsed_annotations$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(Parsed_annotations$GO, ";"))
   tst3 <- data.table(ID = tst1, Name = tst2)
-  tst3 <- tst3[, list(Name = .(unique(Name))), by = .(ID = ID)]
+  tst3 <- tst3[, .(Name = list(unique(Name))), by = .(ID = ID)]
   tst3 <- as.data.frame(tst3)
   tst3$N_names <- lengths(tst3$Name)
   #max(tst3$N_names)
@@ -178,7 +178,7 @@ if (Annotate) {
       db[[i]] <- parallel::parSapply(parClust, db[[i]], paste, collapse = ";")
     }
   }
-  saveFun(Parsed_annotations, file = "Parsed_annotations.RDS")
+  saveFun(Parsed_annotations, backupFls["Annotations"])
   pth <- paste0(wd, "/Parsed, annotated search db.csv")
   f0 <- \() {
     data.table::fwrite(db, pth,

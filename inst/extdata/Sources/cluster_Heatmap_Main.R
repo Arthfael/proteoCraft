@@ -11,8 +11,8 @@ drawPlotly <- TRUE
 if ((!exists("plotLeatMaps")) || (!inherits(plotLeatMaps, "list"))) { plotLeatMaps <- list() }
 if ((!exists("heatMaps")) || (!inherits(heatMaps, "list"))) { heatMaps <- list() }
 if (!exists("clustDat")) {
-  if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
-    loadFun(clustDat_fl)
+  if (file.exists(backupFls["HeatMaps_data"])) {
+    loadFun(backupFls["HeatMaps_data"])
   } else {
     Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
     #rstudioapi::documentOpen(Src)
@@ -851,7 +851,11 @@ if (clustHtMp) {
   }))
   #
   #if (clustMode == "standard") {
-  saveFun(plotLeatMaps, file = paste0(clustDir, "/HeatMaps.RDS"))
+  if (clustMode == "standard") {
+    saveFun(plotLeatMaps, backupFls["HeatMaps"])
+  } else {
+    saveFun(plotLeatMaps, paste0(clustDir, "/HeatMaps.RDS"))
+  }
   # Save plotly plots
   dr <- clustDir
   myPlotLys <- list()

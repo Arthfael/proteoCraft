@@ -1,14 +1,25 @@
-# Source to control how we use the splitByOrg argument and the lower level PG_Assemble source
+#### Assemble protein groups
+#
+# Top-level source to control how we use the splitByOrg argument and the lower level PG_Assemble source.
+cat("Starting protein groups assembly...\n")
+if ("N. of peptidoforms for quantitation" %in% colnames(Param)) {
+  N_Pep <- as.integer(Param$"N. of peptidoforms for quantitation")
+  if (is.na(N_Pep) || (N_Pep <= 0L)) {
+    warning("Invalid `\"N. of peptidoforms for quantitation\" parameter, defaulting to 1!")
+    N_Pep <- 1L
+  }
+} else { N_Pep <- 1L }
+N_Pep %<o% N_Pep
 #
 pgSrc <- paste0(libPath, "/extdata/Sources/PG_Assemble.R")
 #rstudioapi::documentOpen(pgSrc)
 if (!exists("splitByOrg")) { splitByOrg <- FALSE }
+PG_assembly %<o% list()
 if (splitByOrg) {
   uOrgs <- unique(db[[dbOrgKol]])
   uOrgsNorm <- gsub("_+", "_", gsub("[<>,:\"/|?.\\\\]", "_", uOrgs))
   stopifnot(length(uOrgsNorm) == length(uOrgs)) # Unhandled exception
   names(uOrgsNorm) <- uOrgs
-  PGs_list <- list()
   myTmpPepFilt <- listMelt(strsplit(pep$Proteins, ";"), ColNames = c("ID", "Row"))
   myTmpPepFilt$Org <- db[match(myTmpPepFilt$ID, db$`Protein ID`), dbOrgKol]
   for (currOrg in uOrgs) {
@@ -16,12 +27,12 @@ if (splitByOrg) {
     Pep <- pep[1L:nrow(pep) %in% myTmpPepFilt$Row[myTmpPepFilt$Org == currOrg],]
     Ev <- ev[ev$`Modified sequence` %in% Pep$`Modified sequence`,]
     source(pgSrc)
-    PGs_list[[currOrg]] <- PG_assembly
+    PG_assembly[[currOrg]] <- PG_assembl
   }
   # Stitch database back together
-  db <- plyr::rbind.fill(lapply(PGs_list, \(x) { x$Database }))
+  db <- plyr::rbind.fill(lapply(PG_assembly, \(x) { x$Database }))
   # Protein groups
-  PGs <- lapply(PGs_list, \(x) { x$Protein.groups })
+  PGs <- lapply(PG_assembly, \(x) { x$Protein.groups })
   PG <- plyr::rbind.fill(PGs)
   # Peptides and PSMs
   # NB: For now we are allowing one razor protein group per organism!
@@ -32,7 +43,7 @@ if (splitByOrg) {
            "Leading proteins", "Leading razor proteins",
            "Protein names", "Protein names (all)", "Common protein names",
            "Gene names", "Gene names (all)")
-  tmpPeps <- lapply(PGs_list, \(x) { x$Peptides[, c("Modified sequence", kol)] })
+  tmpPeps <- lapply(PG_assembly, \(x) { x$Peptides[, c("Modified sequence", kol)] })
   tmpPeps <- plyr::rbind.fill(tmpPeps)
   tmpPeps <- as.data.table(tmpPeps)
   for (k in kol) {
@@ -47,13 +58,14 @@ if (splitByOrg) {
 } else {
   #rstudioapi::documentOpen(pgSrc)
   source(pgSrc)
-  #loadFun("PG_assembly.RDS")
-  PG <- PG_assembly$Protein.groups
-  pep <- PG_assembly$Peptides
-  db <- PG_assembly$Database
-  if ("Evidences" %in% names(PG_assembly)) { ev <- PG_assembly$Evidences }
+  PG_assembly[[1L]] <- PG_assembl
+  PG <- PG_assembl$Protein.groups
+  pep <- PG_assembl$Peptides
+  db <- PG_assembl$Database
+  if ("Evidences" %in% names(PG_assembl)) { ev <- PG_assembl$Evidences }
 }
 DatAnalysisTxt$PG_assemble <- paste0("Observed peptides were grouped and assembled into ",
                                      c("", "species-specific ")[splitByOrg + 1L],
                                      "Protein Groups using a heuristic maximum parsimony algorithm.")
 PG %<o% PG
+saveFun(PG_assembly, backupFls["PG_assembly"])

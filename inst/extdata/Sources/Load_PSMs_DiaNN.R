@@ -203,21 +203,23 @@ if (ProcessedByUs && length(wNtFnd)) {
     }
   }
 }
-if (exists("ev_DIANN2MQ")) { rm(ev_DIANN2MQ) }
-psmsBckpFl_i <- paste0("diaNN PSMs converted to MQ-like format_", dir_i, ".RDS")
-if (exists("reloadedBckps") && (psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
-  loadFun(psmsBckpFl_i)
-}
-if (!exists("ev_DIANN2MQ")) {
+# Removing the backups for now:
+# The converter functions are fast enough, and the way the backups are named, # there is a risk they will get mixed up!
+# if (exists("ev_DIANN2MQ")) { rm(ev_DIANN2MQ) }
+# psmsBckpFl_i <- paste0(wd, "/_backups/diaNN PSMs converted to MQ-like format_", dir_i, ".RDS")
+# if (exists("reloadedBckps") && (psmsBckpFl_i %in% reloadedBckps$File) && file.exists(psmsBckpFl_i)) {
+#   loadFun(psmsBckpFl_i)
+# }
+# if (!exists("ev_DIANN2MQ")) {
   cat(" - Processing PSMs...\n")
   source(parSrc)
   ev_DIANN2MQ <- DIANN_to_MQ(psmFls_i,
                              cl = parClust,
                              log_Fl = diaNN_logFl_i)
-  cat(" - Saving...\n")
-  saveFun(ev_DIANN2MQ, file = psmsBckpFl_i)
+  #cat(" - Saving...\n")
+  #saveFun(ev_DIANN2MQ, file = psmsBckpFl_i)
   cat(" -> Done!\n")
-}
+#}
 ev_i <- ev_DIANN2MQ$Evidence
 ev_i$Search_ID <- inDirs[dir_i]
 if ("QuantUMS" %in% names(ev_DIANN2MQ)) {

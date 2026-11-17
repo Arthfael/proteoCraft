@@ -156,12 +156,13 @@ if (ok2Deliver) {
   g <- grep("^3(\\.[0-9]+)?_", list.dirs(outDir, FALSE, FALSE), value = TRUE)
   kount <- length(g)
   procDir %<o% paste0(outDir, "/3.", kount, "_Post_processing_", Sys.Date())
-  # - 3c) temporarily move .RDS files out of the way
-  tmpRDS <- grep("\\.RDS$", list.files(wd, full.names = TRUE), value = TRUE, ignore.case = TRUE) # Move all RDS files out of the way for now
-  tmpRDS <- grep("/Backup\\.RDS$", tmpRDS, value = TRUE, invert = TRUE, ignore.case = TRUE) # We do want to export the final Backup.RDS file: it is large, but useful to have
-  tmpRDS2 <- sub(topattern(wd), projDir, tmpRDS)
-  if (length(tmpRDS)) {
-    fs::file_move(tmpRDS, tmpRDS2)
+  # - 3c) most backup files are skipped, except the main backup
+  bckpDir <- paste0(wd, "/_param")
+  allMyBckps <- list.files(bckpDir, recursive = TRUE, full.names = TRUE) # Move all backup files out of the way for now
+  allMyBckps <- grep("/Backup\\.RDS$", allMyBckps, value = TRUE, invert = TRUE, ignore.case = TRUE) # We do want to export the final Backup.RDS file: it is large, but useful to have
+  allMyBckps2 <- sub(topattern(bckpDir), projDir, allMyBckps)
+  if (length(allMyBckps)) {
+    fs::file_move(allMyBckps, allMyBckps2)
   }
   # - 3d) copy analysis results
   cat(" - Copying processing results from\n\t\t", wd, "\n   to\n\t\t", procDir, "\n\n")
@@ -183,9 +184,9 @@ if (ok2Deliver) {
       Tsts$"Data analysis" <- FALSE
     }
   }
-  # - 3e) move .RDS files back
-  if (length(tmpRDS)) { # Now put them back in their original place
-    fs::file_move(tmpRDS2, tmpRDS)
+  # - 3e) move backup files back
+  if (length(allMyBckps)) { # Now put them back in their original place
+    fs::file_move(allMyBckps2, allMyBckps)
   }
   dataDeliveryOk <- is.logical(Tsts$"Data analysis") && (!is.na(Tsts$"Data analysis")) && Tsts$"Data analysis"
 }
@@ -223,8 +224,8 @@ Script <- readr::read_lines(ScriptPath)
 gc()
 source(parSrc)
 invisible(parallel::parLapply(parClust, 1L:N.clust, \(x) { rm(list = ls());gc() }))
-setwd(wd); saveImgFun(BckUpFl) # Leave an ultimate backup in the temporary folder
-#loadFun(BckUpFl)
+setwd(wd); saveImgFun(backupFls["Main"]) # Leave an ultimate backup in the temporary folder
+#loadFun(backupFls["Main"])
 
 # Also save a citations report
 if (dataDeliveryOk) { setwd(procDir) } else { setwd(wd) }

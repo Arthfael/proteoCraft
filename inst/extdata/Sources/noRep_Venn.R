@@ -17,7 +17,6 @@ idKol <- "Leading protein IDs"
 VennMx <- 7L
 VennDir <- paste0(wd, "/Venn diagrams")
 if (!dir.exists(VennDir)) { dir.create(VennDir, recursive = TRUE) }
-Venn_fl %<o% paste0(VennDir, "/Venn_plotly.RDS")
 if (Venn_Obs) {
   ref <- PG.int.cols["Original"]
   Grps <- unique(SamplesMap$`Ratios group`)
@@ -238,4 +237,4 @@ for (nm in names(plotly_Venn)) { #nm <- names(plotly_Venn)[1L]
   plotly_Venn[[nm]] <- plotly::config(p,
                                       modeBarButtonsToRemove = c("select2d", "lasso2d"))
 }
-saveFun(plotly_Venn, Venn_fl)
+saveFun(plotly_Venn, backupFls["Venn"])

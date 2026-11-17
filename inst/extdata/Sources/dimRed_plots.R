@@ -8,8 +8,8 @@ Exp.map$RSA_cleaned <- cleanNms(Exp.map$Ref.Sample.Aggregate)
 # Note on missing values: currently we do not impute but filter by number of valid values.
 # This may change.
 if (!exists("clustDat")) {
-  if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
-    loadFun(clustDat_fl)
+  if (file.exists(backupFls["HeatMaps_data"])) {
+    loadFun(backupFls["HeatMaps_data"])
   } else {
     Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
     #rstudioapi::documentOpen(Src)
@@ -42,8 +42,7 @@ datMatch <- match(row.names(dimRedDat), nameCol)
 filt <- which((apply(dimRedDat[, kol], 1L, \(x) { sum(is.finite(x)) }) == ncol(dimRedDat)) &
               (is.na(contCol[datMatch]) | (contCol[datMatch] != "+")))
 #
-dimRed_fl %<o% paste0(wd, "/Dimensionality red. plots/DimRedPlots.RDS")
-if ((!exists("dimRedPlotLy")) && file.exists(dimRed_fl)) { try({ loadFun(dimRed_fl) }, silent = TRUE) }
+if ((!exists("dimRedPlotLy")) && file.exists(backupFls["dimRed"])) { try({ loadFun(backupFls["dimRed"]) }, silent = TRUE) }
 if (!exists("dimRedPlotLy")) { dimRedPlotLy <- list() }
 if (!dataType %in% names(dimRedPlotLy)) { dimRedPlotLy[[dataType]] <- list() }
 #
@@ -569,5 +568,5 @@ if ((length(filt) > 2L) && (length(kol) > 2L)) {
       } else { warning(umap) }
     }
   }
-  saveFun(dimRedPlotLy, file = dimRed_fl)
+  saveFun(dimRedPlotLy, backupFls["dimRed"])
 } else { warning(paste0("Not enough observations to create ", insert, "-level dimensionality reduction plots!")) }

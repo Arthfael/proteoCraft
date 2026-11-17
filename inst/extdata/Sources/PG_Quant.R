@@ -275,9 +275,9 @@ if (scrptType == "withReps") {
   g <- grep("^log2FC - ", colnames(quantData_list$Data))
   colnames(quantData_list$Data)[g] <- sub("^log2FC - ", Prot.Rat.Root, colnames(quantData_list$Data)[g])
 }
-myQuantBckpFl %<o% paste0(wd, "/", bckpNm, ".RDS")
-saveFun(quantData_list, file = myQuantBckpFl)
-#loadFun(myQuantBckpFl)
+nrmNm <- paste0("PG_quant", c("", "_reNorm")[post_ReNorm_reRun+1L])
+saveFun(quantData_list, backupFls[nrmNm])
+#loadFun(backupFls[nrmNm])
 
 if (!exists("writeMatMeth")) { writeMatMeth <- TRUE }
 if (writeMatMeth && (!post_ReNorm_reRun)) {
@@ -362,9 +362,8 @@ if ((scrptType == "noReps") && Impute) {
   cat(" -> 2nd Protein groups quantitation (this time from imputed peptides)...\n")
   quantData_list_Imput %<o% do.call(protQuant, quantArgs_Imp)
   cat("    done!\n\n")
-  myQuantBckpFl2 %<o% paste0(wd, "/", bckpNm, "2.RDS")
-  saveFun(quantData_list_Imput, file = myQuantBckpFl2)
-  #loadFun(myQuantBckpFl2)
+  saveFun(quantData_list_Imput, backupFls["PG_quant_Imput"])
+  #loadFun(backupFls["PG_quant_Imput"])
   quantData2 <- quantData_list_Imput$Data
   quantData2 <- quantData2[, which(!grepl("\\.REF$", colnames(quantData2))), drop = FALSE]
   colnames(quantData2) <- gsub("^log10\\(Expr\\.\\) - ", PG.int.col, colnames(quantData2))

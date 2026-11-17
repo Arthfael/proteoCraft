@@ -57,9 +57,8 @@ if (GSEAmode == "WGCNA") {
   isOK <- TRUE
 }
 
-GSEA_plotly_fl %<o% paste0(wd, "/Reg. analysis/GSEA/GSEA_plotly.RDS")
-if ((!exists("GSEA_plotly")) && file.exists(GSEA_plotly_fl)) {
-  loadFun(GSEA_plotly_fl)
+if ((!exists("GSEA_plotly")) && file.exists(backupFile["GSEA"])) {
+  loadFun(backupFile["GSEA"])
 }
 if (!exists("GSEA_plotly")) {
   GSEA_plotly <- list()
@@ -76,10 +75,8 @@ if (isOK) {
   if (Annotate) {
     
     # Either we can use the annotations we already have
-    if (!exists("GO_mappings_fl")) { GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS") }
-    if (!exists("GO_terms_fl")) { GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS") }
-    if (!exists("GO_mappings")) { try(loadFun(GO_mappings_fl), silent = TRUE) }
-    if (!exists("GO_terms")) { try(loadFun(GO_terms_fl), silent = TRUE) }
+    if (!exists("GO_mappings")) { try(loadFun(backupFls["GO mappings"]), silent = TRUE) }
+    if (!exists("GO_terms")) { try(loadFun(backupFls["GO terms"]), silent = TRUE) }
     if (sum(!c(exists("GO_mappings"), exists("GO_terms")))) {
       Src <- paste0(libPath, "/extdata/Sources/GO_prepare.R") # Doing this earlier but also keep latter instance for now
       #rstudioapi::documentOpen(Src)
@@ -609,6 +606,6 @@ if (isOK) {
   #
 }
 cat("    - Saving results...\n")
-saveFun(GSEA_plotly, GSEA_plotly_fl)
-#loadFun(GSEA_plotly_fl)
+saveFun(GSEA_plotly, backupFile["GSEA"])
+#loadFun(backupFile["GSEA"])
 cat("    - Done!\n\n")

@@ -108,9 +108,8 @@ fullContrFun <- \(prim, sec) {
   if (missing(sec) || is.na(sec) || (length(sec) != 1L) || (sec == "")) { return(prim) }
   return(paste0("(", prim, ") - (", sec, ")"))
 }
-contrastsFl %<o% paste0(wd, "/Contrasts.RDS")
-if (file.exists(contrastsFl)) {
-  myContrasts <- readr::read_rds(contrastsFl)
+if (file.exists(backupFls["Contrasts"])) {
+  myContrasts <- readr::read_rds(backupFls["Contrasts"])
   g <- grep("\\) - \\(", myContrasts$Contrast)
   if (length(g) && (!alsoDouble)) {
     warning("Invalid contrasts reloaded!")
@@ -402,7 +401,7 @@ table.on('click', 'button', function() {
   shiny::observeEvent(input$saveBtn, {
     myContrasts2 <- CONTRASTSTBL()[, c("Contrast", "Up-only")]
     assign("myContrasts2", myContrasts2, envir = .GlobalEnv)
-    readr::write_rds(myContrasts2, contrastsFl)
+    readr::write_rds(myContrasts2, backupFls["Contrasts"])
     assign("appRunTest", TRUE, envir = .GlobalEnv)
     shiny::stopApp()
   })
@@ -416,7 +415,7 @@ while ((!runKount) || (!exists("appRunTest"))) {
   ui0 <- make_ui0() # Update ui with current values
   eval(parse(text = appTxt0), envir = .GlobalEnv)
   shinyCleanup()
-  if (file.exists(contrastsFl)) { myContrasts <- readr::read_rds(contrastsFl) }
+  if (file.exists(backupFls["Contrasts"])) { myContrasts <- readr::read_rds(backupFls["Contrasts"]) }
   runKount <- runKount+1L
 }
 # Some post-processing

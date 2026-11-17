@@ -9,10 +9,12 @@ closeAllConnections()
 ## Load proteoCraft
 if (exists(".obj")) { rm(".obj") }
 library(proteoCraft)
+dirlist %<o% c() # This should go!!!
 # Get local work directory:
 ScriptPath %<o% normalizePath(gtools::script_file(), winslash = "/")
-RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
-if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
+# Obsolete:
+#RunByMaster %<o% grepl(" - master script\\.R$", ScriptPath)
+#if (RunByMaster) { ScriptPath <- BehindTheScenes$ScriptFile }
 Script %<o% readr::read_lines(ScriptPath)
 
 RPath %<o% as.data.frame(library()$results)
@@ -25,15 +27,19 @@ xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
 locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
 locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
 
-# Run local scripts at startup - keep this after loading the backup!
-locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
-source(locScrptSrc)
-
-# Re-load backup?
-Src <- paste0(libPath, "/extdata/Sources/reloadBackup.R")
-#rstudioapi::documentOpen(Src)
-source(Src)
-ScriptPath <- normalizePath(gtools::script_file(), winslash = "/") # must stay in top-level script!
+# Load backup?
+load_a_Bckp %<o% c(TRUE, FALSE)[match(svDialogs::dlg_message("Re-load a backup?", "yesno")$res, c("yes", "no"))]
+if (load_a_Bckp) {
+  tst <- try({
+    locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+    load_Bckp(startDir = locDirs$Path[match("Temporary folder", locDirs$Folder)])
+  }, silent = TRUE)
+  # Update values!
+  xplorSrc %<o% paste0(libPath, "/extdata/Sources/xplorData.R")
+  locDirs_fl %<o% paste0(homePath, "/Default_locations.xlsx")
+  locDirs %<o% openxlsx2::read_xlsx(locDirs_fl)
+  ScriptPath <- normalizePath(gtools::script_file(), winslash = "/") # update
+}
 
 if (!exists("N.clust")) { N.clust <- max(c(round(parallel::detectCores()*0.95)-1L, 1L)) }
 parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
@@ -62,7 +68,7 @@ cran_req %<o% cran_req
 if(!exists("bioc_req")) { bioc_req <- c() } 
 bioc_req %<o% bioc_req
 # cran_req <- unique(c(cran_req, "pak", "fs", "shiny", "renv", "R.utils", "data.table", "devtools", "qs2", "shinyWidgets", "DT",
-#                      "gplots", "ggplot2", "ggpubr", "gtools", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
+#                      "gplots", "ggplot2", "ggpubr", "gtools", "reshape", "reshape2", "compiler", "stats", "ggrepel", "rstudioapi", "modeest",
 #                      "minpack.lm", "snow", "viridis", "imputeLCMD", "parallel", "coin", "openxlsx2", "plotly",
 #                      "Peptides", "xml2", "statmod", "ggpolypath", "venn", "svDialogs", "htmlwidgets", "magrittr",
 #                      "officer", "hexbin", "igraph", "umap", "plyr", "ggnewscale", "shinyjs", "shinyFiles", "TeachingDemos", "shinycssloaders",
@@ -127,7 +133,11 @@ biocInstall %<o% function(pack, load = TRUE) {
 }
 # for (pack in bioc_req) { biocInstall(pack, load = FALSE) }
 
-# Set Shiny options, create Excel styles
+# Run local scripts at startup - keep this after loading the backup!
+locScrptSrc %<o% paste0(libPath, "/extdata/Sources/runLocScrpts.R")
+source(locScrptSrc)
+
+# Set Shiny options, load functions for creating a Word report, create Excel styles
 Src <- paste0(libPath, "/extdata/Sources/ShinyOpt_Styles_and_Report.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
@@ -160,12 +170,13 @@ Src <- paste0(libPath, "/extdata/Sources/Start_analysis.R")
 source(Src)
 
 setwd(wd)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 #openwd()
 
 # Log the current analysis:
 dir <- paste0(wd, "/Workflow control")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+dirlist <- base::union(dirlist, dir)
 start_date %<o% gsub(":", "-", gsub(" ", "_", Sys.time()))
 if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in% list.files()) {
   write(c(paste0("Data_analysis_log_", start_date), "__________________________", ""),
@@ -176,10 +187,9 @@ if (! paste0(wd, "/Workflow control/Data_analysis_log_", start_date, ".txt") %in
 sink(paste0("Workflow control/Data_analysis_log_", start_date, ".txt"), type = "output", append = TRUE, split = TRUE)
 
 # Create parallel processing cluster
-#rstudioapi::documentOpen(parSrc)
 source(parSrc)
 requireNamespace("data.table")
-data.table::setDTthreads(threads = N.clust)
+setDTthreads(threads = N.clust)
 
 # Load PSMs`
 Src <- paste0(libPath, "/extdata/Sources/Load_PSMs.R")
@@ -243,7 +253,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # Check and process Fractions map
 Src <- paste0(libPath, "/extdata/Sources/Fractions_Map_check.R")
@@ -314,7 +324,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 #source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # Filter to keep only PSMs with valid quantitative values:
 Src <- paste0(libPath, "/extdata/Sources/filtPSMs.R")
@@ -338,7 +348,7 @@ ev$"Unique State" <- do.call(paste, c(ev[, c("Modified sequence", "Charge")], se
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 #source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # DIA-only: MS2-based correction of MS1-based quantitative values
 Src <- paste0(libPath, "/extdata/Sources/MS2corr2MS1.R")
@@ -353,7 +363,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - ROC analysis for optimizing a threshold to include/exclude peptides mapped to specific GO terms
 Src <- paste0(libPath, "/extdata/Sources/ROC1.R")
@@ -408,7 +418,7 @@ LocAnalysis2 %<o% FALSE
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 #source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Optionally impute missing peptide intensities
 Src <- paste0(libPath, "/extdata/Sources/pep_Impute.R")
@@ -450,32 +460,12 @@ if (makePepRat) {
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
-
-#### Code chunk - Assemble protein groups
-cat("Starting protein groups assembly...\n")
-if ("N. of peptidoforms for quantitation" %in% colnames(Param)) {
-  N_Pep <- as.integer(Param$"N. of peptidoforms for quantitation")
-  if (is.na(N_Pep) || (N_Pep <= 0L)) {
-    warning("Invalid `\"N. of peptidoforms for quantitation\" parameter, defaulting to 1!")
-    N_Pep <- 1L
-  }
-} else { N_Pep <- 1L }
-N_Pep %<o% N_Pep
-#
-tm1 <- Sys.time()
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Assemble protein groups
 Src <- paste0(libPath, "/extdata/Sources/PG_AssembleTop.R")
 #rstudioapi::documentOpen(Src)
 source(Src)
-
-# Here would be a good place to check protein taxonomy and [if necessary/as per parameters] split hybrid groups!
-# Should be controlled by a parameter only showing up if taxonomy is present in db and has more than one value!
-warning("(TO DO: add a 'split-by-taxonomy?' parameter!)")
-# Default = TRUE
-# Don't forget to update PG IDs in PG, ev and pep afterwards! Also check potential contaminant column!
-
 
 # Check those rare proteins IDs which are not in the search DB (should be contaminants)
 tst <- unlist(strsplit(pep$Proteins, ";"))
@@ -491,6 +481,7 @@ if (length(g)) {
   }
 }
 #
+DatAnalysisTxt$PG_assemble <- "Observed peptides were grouped and assembled into Protein Groups using a heuristic maximum parsimony algorithm."
 
 # Peptidoforms per Protein Group
 Src <- paste0(libPath, "/extdata/Sources/pep_per_PG.R")
@@ -500,6 +491,7 @@ source(Src)
 source(parSrc)
 tmp1 <- strsplit(pep$Proteins, ";")
 tmp2 <- db[db$"Protein ID" %in% unlist(tmp1), c("Protein ID", "Gene", "Name", "Common Name")]
+exports <- list("tmp1", "tmp2")
 parallel::clusterExport(parClust, "tmp2", envir = environment())
 tmp <- parallel::parSapply(parClust, tmp1, \(x) {
   m <- match(unlist(x), tmp2$"Protein ID")
@@ -543,7 +535,8 @@ for (i in c("No Isoforms", "Names", "Genes")) { #i <- "No Isoforms"
   }
   if (length(j) == 1L) {
     tmp4 <- db[[j]]
-    parallel::clusterExport(parClust, list("i", "tmp4"), envir = environment())
+    exports <- list("i", "tmp4")
+    parallel::clusterExport(parClust, exports, envir = environment())
     PG[[i]] <- parallel::parSapply(parClust, tmp, \(x) {
       x <- unlist(x)
       m1 <- match(x, tmp2)
@@ -648,6 +641,7 @@ PG$"Sequence (1st accession)" <- db$Sequence[m]
 source(parSrc)
 invisible(parallel::clusterCall(parClust, \() {
   library(proteoCraft)
+  library(reshape)
   library(data.table)
   return()
 }))
@@ -661,8 +655,9 @@ tmp <- as.data.table(tmp)
 tmp <- tmp[, .(Seq = list(Seq)), by = .(PG = PG)]
 temp_PG$Pep <- tmp$Seq[match(PG$id, tmp$PG)]
 temp_PG$Seq <- db$Sequence[match(temp_PG$Accession1, db$"Protein ID")]
-if (!"Sequence coverage [%]" %in% colnames(PG)) {
-  source(parSrc)
+exports <- if (!"Sequence coverage [%]" %in% colnames(PG)) {
+  exports <- list("Coverage")
+  parallel::clusterExport(parClust, exports, envir = environment())
   PG$"Sequence coverage [%]" <- round(100*parallel::parApply(parClust, temp_PG[, c("Seq", "Pep")], 1L, \(x) {
     Coverage(x[[1L]], x[[2L]])
   }), 1L)
@@ -688,6 +683,7 @@ if (CreateMSMSKol) {
 temp_ev <- ev[, c("id", "MQ.Exp", "Protein group IDs", "Peptide ID")]
 if (CreateMSMSKol) { temp_ev$"MS/MS IDs" <- ev$"MS/MS IDs" }
 temp_pep <- pep[, c("id", "Sequence")]
+parallel::clusterExport(parClust, exports, envir = environment())
 Samplez <- list(Sample = c(), Group = c())
 MQ_Exp <- list()
 for (gr in VPAL$values) { #gr <- VPAL$values[1L]
@@ -858,7 +854,7 @@ if (prot.list.Cond) {
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Calculate protein group-level quantitative values
 post_ReNorm_reRun <- FALSE
@@ -874,7 +870,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # Test expression values:
 quantData <- quantData_list$Data
@@ -909,11 +905,12 @@ for (v in unique(test$variable)) {
     sum((test$value[wv] > binz[x]) & (test$value[wv] <= binz[x+1L]))
   }, 1L)
 }
-testI <- dfMelt(testI, id.vars = "log10(Expression)")
+testI <- reshape2::melt(testI, id.vars = "log10(Expression)")
 testI[, a] <- test[match(testI$variable, test$variable), a]
 testI$variable <- cleanNms(testI$variable)
 dir <- paste0(wd, "/Workflow control/Protein groups/Expression")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+dirlist <- base::union(dirlist, dir)
 ttl <- "Protein groups - distribution of Expression values"
 plot <- ggplot2::ggplot(testI) +
   ggplot2::geom_area(ggplot2::aes(x = `log10(Expression)`, y = value, fill = variable,
@@ -965,6 +962,7 @@ testR <- dfMelt(testR, id.vars = "log2FC")
 colnames(testR)[colnames(testR) == "variable"] <- "Contrast"
 dir <- paste0(wd, "/Workflow control/Protein groups/Expression")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+dirlist <- base::union(dirlist, dir)
 ttl <- "Protein groups - distribution of Ratios"
 plot <- ggplot2::ggplot(testR) +
   ggplot2::geom_area(ggplot2::aes(x = log2FC, y = value, fill = Contrast,
@@ -1163,7 +1161,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 # Prepare data for clustering and dimensionality reduction plots
 Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
@@ -1233,14 +1231,13 @@ if (inherits(tempVP, "try-error") || is.character(tempVP)) {
   stop("MAJOR ERROR: No volcano plots were created, investigate!")
 }
 #
-if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
 if (!exists("volcPlotly")) {
-  if (file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) } else { volcPlotly <- list() }
+  if (file.exists(backupFls["Vulcan"])) { loadFun(backupFls["Vulcan"]) } else { volcPlotly <- list() }
 }
 if (!exists("volcPlotly")) { volcPlotly <- list() }
 volcPlotly[["t-test"]] <- tempVP$`Plotly plots`
-saveFun(volcPlotly, volcPlotly_fl)
-#loadFun(volcPlotly_fl)
+saveFun(volcPlotly, backupFls["Vulcan"])
+#loadFun(backupFls["Vulcan"])
 
 # Save plotly plots
 dr <- paste0(wd, "/", subDr)
@@ -1349,13 +1346,12 @@ if (("Q.values" %in% colnames(Param)) && is.logical(Param$Q.values) && Param$Q.v
     volcPlot_args2$X.root_ind <- Prot.Expr.Root
     tempVP2 <- do.call(Volcano.plot, volcPlot_args2)
     #
-    if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
     if (!exists("volcPlotly")) {
-      if (file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) } else { volcPlotly <- list() }
+      if (file.exists(backupFls["Vulcan"])) { loadFun(backupFls["Vulcan"]) } else { volcPlotly <- list() }
     }
     volcPlotly[["t-test (Q-values)"]] <- tempVP2$`Plotly plots`
-    saveFun(volcPlotly, volcPlotly_fl)
-    #loadFun(volcPlotly_fl)
+    saveFun(volcPlotly, backupFls["Vulcan"])
+    #loadFun(backupFls["Vulcan"])
     #
     # Save plotly plots
     dr <- paste0(wd, "/", subDr)
@@ -1492,7 +1488,7 @@ if (inherits(clustersTest, "try-error")) {
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - F-test
 #Param <- Param.load()
@@ -1503,6 +1499,7 @@ if (("F.test" %in% colnames(Param)) && is.logical(Param$F.test) && (length(Param
 if (F.test) {
   dir <- paste0(wd, "/Reg. analysis/F-tests")
   for (d in dir) { if (!dir.exists(d)) { dir.create(d, recursive = TRUE) }}
+  dirlist <- base::union(dirlist, dir)
   cat("Running F-test\n")
   #
   if (("F.test_within" %in% colnames(Param)) && (Param$F.test_within != "")) {
@@ -1592,7 +1589,7 @@ if (F.test) {
     # Backup data/update cluster
     #rstudioapi::documentOpen(bckpSrc)
     #source(bckpSrc)
-    #loadFun(BckUpFl)
+    #loadFun(backupFls["Main"])
     #
   } else { warning("F-test analysis failed, check your parameters!")}
 }
@@ -1644,6 +1641,7 @@ for (tt in WhTsts) { #tt <- WhTsts[1L]
   stopifnot(!is.na(tstrt))
   dir <- paste0(wd, "/Reg. analysis/", tstrt)
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+  dirlist <- base::union(dirlist, dir)
   filt <- Reg_filters[[tstrt]]
   By <- c("By condition", "By reference", "By analysis")
   By <- base::intersect(By, names(filt))
@@ -1740,6 +1738,7 @@ if (exists("Tim")) {
   cat("Time profile plots\n")
   dir <- paste0(wd, "/Time profile plots")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+  dirlist <- base::union(dirlist, dir)
   r <- paste0("Mean ", Prot.Rat.Root)
   p <- pvalue.col[pvalue.use]
   a <- gsub("Tim", "", VPAL$aggregate)
@@ -1779,12 +1778,12 @@ if (exists("Tim")) {
         temp1 <- PG[test, c(col, Param$Plot.labels, t1)]
         temp1$IDs <- as.character(1L:nrow(temp1))
         temp2 <- PG[test, c(col, Param$Plot.labels, t2)]
-        temp1 <- dfMelt(temp1, id.vars = c(col, "IDs", Param$Plot.labels))
+        temp1 <- reshape2::melt(temp1, id.vars = c(col, "IDs", Param$Plot.labels))
         colnames(temp1)[colnames(temp1) == "value"] <- "log2(Ratio)"
         temp1$variable <- gsub_Rep(topattern(r, start = FALSE), "", as.character(temp1$variable))
-        temp2 <- dfMelt(temp2, id.vars = c(col, Param$Plot.labels))
+        temp2 <- reshape2::melt(temp2, id.vars = c(col, Param$Plot.labels))
         temp1$"-log10(Pvalue)" <- temp2$value[match(temp1$"Protein IDs", temp2$"Protein IDs")]
-        temp1[, o1] <- Isapply(strsplit(temp1$variable, "___"), unlist)
+        temp1[,o1] <- Isapply(strsplit(temp1$variable, "___"), unlist)
         temp[[i]] <- temp1
       }
     }
@@ -1847,7 +1846,7 @@ if (exists("Tim")) {
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Sub-Cellular localisation analysis
 # Includes:
@@ -1873,14 +1872,14 @@ modPepSrc <- paste0(libPath, "/extdata/Sources/modPeptides.R")
 #rstudioapi::documentOpen(modPepSrc)
 source(modPepSrc)
 if (exists("GO_plot_ly")) {
-  saveFun(GO_plot_ly, GO_plot_ly_fl)
+  saveFun(GO_plot_ly, backupFls["GO plots"])
   rm(GO_plot_ly)
 }
 
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Proteomic ruler
 Src <- paste0(libPath, "/extdata/Sources/proteome_Ruler.R")
@@ -1905,7 +1904,7 @@ source(Src)
 GO_PG_col %<o% unique(unlist(strsplit(Param$GO.tabs, ";")))
 GO_filt %<o% (length(GO_PG_col) > 0L)
 if (GO_filt) {
-  if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) { loadFun("GO_terms.RDS") }
+  if ((!exists("GO_terms")) && file.exists(backupFls[["GO terms"]])) { loadFun(backupFls[["GO terms"]]) }
   GO_PG_col <- base::intersect(GO_PG_col, GO_terms$ID)
   GO_filt <- length(GO_PG_col) > 0L
 }
@@ -1953,23 +1952,15 @@ if (GO_filt) {
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Create output tables
 ## PSMs
 dir <- paste0(wd, "/Tables")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+dirlist <- base::union(dirlist, dir)
 w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
-if (length(w)) {
-  rg <- 1L:nrow(ev)
-  for (i in w) {
-    tmp <- listMelt(ev[[i]]) #tmp <- listMelt(strsplit(ev$Proteins, ";"))
-    tmp <- data.table::as.data.table(tmp)
-    tmp <- tmp[, .(x = paste(value, collapse = ";")), by = .(row = L1)]
-    ev[[i]] <- tmp$x[match(rg, tmp$row)]
-    #tst <- tmp$x[match(rg, tmp$row)]; identical(ev$Proteins, tst)
-  }
-}
+if (length(w)) { for (i in w) { ev[[i]] <- parallel::parSapply(parClust, ev[[i]], paste, collapse = ";") } }
 data.table::fwrite(ev, paste0(dir, "/evidence.tsv"), sep = "\t", row.names = FALSE, na = "NA")
 #
 ## Main peptidoforms- and protein groups-level, multi-tabs report
@@ -1990,7 +1981,7 @@ source(Src)
 # Backup data/update cluster
 #rstudioapi::documentOpen(bckpSrc)
 source(bckpSrc)
-#loadFun(BckUpFl)
+#loadFun(backupFls["Main"])
 
 #### Code chunk - Venn diagrams
 if (pkgsCheck["Venn"]) {
@@ -2066,6 +2057,7 @@ if (pkgsCheck["3d_Cov"]) {
 #   if (length(prot)) {
 #     dir <- paste0(wd, "/Evidences type tables")
 #     if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
+#     dirlist <- base::union(dirlist, dir)
 #     for (i in prot) {
 #       temp <- ev[grsep2(i, ev$"Leading proteins"),]
 #       temp <- sapply(unique(ev$Type), \(x) {
@@ -2077,12 +2069,16 @@ if (pkgsCheck["3d_Cov"]) {
 # }
 
 #### Code chunk - Finalize analysis and export results
-
 # Remove empty directories:
-Src <- paste0(libPath, "/extdata/Sources/rmEmptyDirs.R")
-#rstudioapi::documentOpen(Src)
-source(Src)
-
+#dirlist <- list.dirs()
+dirlist <- as.character(unlist(dirlist))
+dirlist <- dirlist[order(nchar(dirlist), decreasing = TRUE)]
+for (dir in dirlist) { #d <- dirlist[1L]
+  if (!length(list.files(dir))) {
+    unlink(dir, recursive = TRUE)
+    dirlist <- base::setdiff(dirlist, dir)
+  }
+}
 # Save decisions - should this go?
 save(AllAnsw, file = "All_decisions.RData")
 

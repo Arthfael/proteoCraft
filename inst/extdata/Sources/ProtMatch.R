@@ -94,16 +94,16 @@ g <- grep("^M", DB$Sequence)
 frstPep <- setNames(vapply(Dig[g], \(x) { x[[1L]] }, ""), Nms[g])
 frstPepNoMeth <- gsub("^M", "", frstPep)
 # - Cluster export small objects
-myWD <- getwd()
-if (exists("wd") && dir.exists(wd)) { myWD <- wd }
 source(parSrc)
-parallel::clusterExport(parClust, c("Nms", "g", "myWD", "fAggr0"), envir = environment())
+parallel::clusterExport(parClust, c("Nms", "g", "fAggr0"), envir = environment())
 # - Use serialization to export efficiently large objects
-readr::write_rds(Dig, paste0(myWD, "/tmpDig.RDS"))
-readr::write_rds(frstPepNoMeth, paste0(myWD, "/1stPepNoMeth.RDS"))
+tmpFls <- vapply(1L:5L, \(x) { tempfile(fileext = ".RDS") }, "")
+parallel::clusterExport(parClust, "tmpFls", envir = environment())
+readr::write_rds(Dig, tmpFls[1L])
+readr::write_rds(frstPepNoMeth, tmpFls[2L])
 invisible(parallel::clusterCall(parClust, \(x) {
-  assign("Dig", readr::read_rds(paste0(myWD, "/tmpDig.RDS")), envir = .GlobalEnv) # So it stays in cluster for next call!
-  assign("frstPepNoMeth", readr::read_rds(paste0(myWD, "/1stPepNoMeth.RDS")), envir = .GlobalEnv) # Same as above
+  assign("Dig", readr::read_rds(tmpFls[1L]), envir = .GlobalEnv) # So it stays in cluster for next call!
+  assign("frstPepNoMeth", readr::read_rds(tmpFls[2L]), envir = .GlobalEnv) # Same as above
   return()
 }))
 #f0 <- \(x) { exists("Dig") & exists("frstPepNoMeth") }
@@ -123,8 +123,7 @@ f0 <- \(x) {
 }
 Dig <- setNames(parallel::parLapply(parClust, 1L:length(Dig), f0), Nms)
 # - Cleanup
-unlink(paste0(myWD, "/tmpDig.RDS"))
-unlink(paste0(myWD, "/1stPepNoMeth.RDS"))
+unlink(tmpFls[1L:2L])
 #
 # Table mapping database proteins to their fragments
 Dig2 <- data.table::rbindlist(Dig)
@@ -160,9 +159,9 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
     stopifnot(nFrag >= 1L, nFrag == as.integer(nFrag))
     #
     fragRg <- 1L:nFrag
-    Seq2flt_i <- readr::read_rds(paste0(myWD, "/tmpA.RDS"))
-    Frag2Prot_i <- readr::read_rds(paste0(myWD, "/tmpB.RDS"))
-    Dig2_i <- readr::read_rds(paste0(myWD, "/tmpC.RDS"))
+    Seq2flt_i <- readr::read_rds(tmpFls[3L])
+    Frag2Prot_i <- readr::read_rds(tmpFls[4L])
+    Dig2_i <- readr::read_rds(tmpFls[5L])
     a1 <- (c(0L, pepRange)+1L)[j]
     a2 <- pepRange[j]
     if (a2 >= a1) {
@@ -239,16 +238,14 @@ if (length(wM)) { # Peptides with missed cleavages: the real fun begins...
       myRng <- unique(myRng)
       myRng <- myRng[myRng > 0L]
       # Export temporary objects which will be read
-      readr::write_rds(Seq2flt_i, paste0(myWD, "/tmpA.RDS"))
-      readr::write_rds(Frag2Prot_i, paste0(myWD, "/tmpB.RDS"))
-      readr::write_rds(Dig2_i, paste0(myWD, "/tmpC.RDS"))
-      parallel::clusterExport(parClust, list("i", "myWD"), envir = environment())
+      readr::write_rds(Seq2flt_i, tmpFls[3L])
+      readr::write_rds(Frag2Prot_i, tmpFls[4L])
+      readr::write_rds(Dig2_i, tmpFls[5L])
+      parallel::clusterExport(parClust, "i", envir = environment())
       tmpResI <- parallel::parLapply(parClust, 1L:length(myRng), f0Mtch, nFrag = i, pepRange = myRng)
       tmpResI <- do.call(rbind, tmpResI)
       Res[[paste0(i, "-missed cleavages")]] <- tmpResI
-      unlink(paste0(myWD, "/tmpA.RDS"))
-      unlink(paste0(myWD, "/tmpB.RDS"))
-      unlink(paste0(myWD, "/tmpC.RDS"))
+      unlink(tmpFls[3L:5L])
     }
   }
 }

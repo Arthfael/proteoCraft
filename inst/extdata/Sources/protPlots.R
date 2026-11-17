@@ -628,15 +628,12 @@ if (goAhead) {
     }
     rm(results)
     if (scrptType == "noReps") {
-      stop()
-      ratioPlots_fl %<o% paste0(wd, "/Protein plots/ratioPlots.RDS")
-      saveFun(ratioPlots, ratioPlots_fl)
-      #loadFun(ratioPlots_fl)
+      saveFun(ratioPlots, backupFls["Ratios"])
+      #loadFun(backupFls["Ratios"])
     }
     rm(ratioPlots)
-    covPlots_fl %<o% paste0(wd, "/Protein plots/covPlots.RDS")
-    saveFun(covPlots, covPlots_fl)
-    #loadFun(covPlots_fl)
+    saveFun(covPlots, backupFls["Coverage"])
+    #loadFun(backupFls["Coverage"])
     rm(covPlots)
   }
   unlink(dataDir, recursive = TRUE)

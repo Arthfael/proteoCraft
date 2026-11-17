@@ -11,7 +11,7 @@ if (!dir.exists(dr)) {
 #  - Pre-extract compact JSON specs
 l <- length(myPlotLys)
 if (l) {
-  tmpFls <- paste0(dr, "/tmp", 1L:l, ".RDS")
+  tmpFls <- vapply(1L:l, \(x) { tempfile(fileext = ".RDS") }, "")
   invisible(lapply(1L:l, \(i) { #i <- 1L
     pl <- myPlotLys[[i]]
     if (!inherits(pl, "plotly")) {

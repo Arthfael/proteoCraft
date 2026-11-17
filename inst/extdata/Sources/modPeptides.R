@@ -489,12 +489,11 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     #pepPlotFun(df1, df2, "Before VS after volc. plot", modDirs[1L], FALSE)
     source(parSrc)
     #
-    if (!exists("volcPlotly_fl")) { volcPlotly_fl %<o% paste0(wd, "/Reg. analysis/volcPlotly.RDS") }
-    if ((!exists("volcPlotly")) && file.exists(volcPlotly_fl)) { loadFun(volcPlotly_fl) }
+    if ((!exists("volcPlotly")) && file.exists(backupFls["Vulcan"])) { loadFun(backupFls["Vulcan"]) }
     if (!exists("volcPlotly")) { volcPlotly <- list() }
     volcPlotly[[paste0(ptm, " t-test")]] <- tempVPptm$`Plotly plots`
-    saveFun(volcPlotly, volcPlotly_fl)
-    #loadFun(volcPlotly_fl)
+    saveFun(volcPlotly, backupFls["Vulcan"])
+    #loadFun(backupFls["Vulcan"])
     #
     # Save plotly plots
     dr <- subDr
@@ -811,10 +810,8 @@ if (exists("PTMstats") && nrow(PTMstats)) {
     # Gene Ontology terms enrichment analysis
     if (enrichGO) {
       #
-      if (!exists("GO_mappings_fl")) { GO_mappings_fl %<o% paste0(wd, "/GO_mappings.RDS") }
-      if (!exists("GO_terms_fl")) { GO_terms_fl %<o% paste0(wd, "/GO_terms.RDS") }
-      if ((!exists("GO_mappings")) && file.exists(GO_mappings_fl)) { loadFun(GO_mappings_fl) }
-      if ((!exists("GO_terms")) && file.exists(GO_terms_fl)) { loadFun(GO_terms_fl) }
+      if ((!exists("GO_mappings")) && file.exists(backupFls["GO mappings"])) { loadFun(backupFls["GO mappings"]) }
+      if ((!exists("GO_terms")) && file.exists(backupFls["GO terms"])) { loadFun(backupFls["GO terms"]) }
       #
       p <- strsplit(ptmpep$Proteins, ";")
       test <- annot.col %in% colnames(db)
@@ -952,11 +949,11 @@ if (exists("PTMstats") && nrow(PTMstats)) {
               #
               Mode <- "regulated"
               dataType <- "modPeptides"
-              if ((!exists("GO_mappings")) && file.exists("GO_mappings.RDS")) {
-                loadFun("GO_mappings.RDS")
+              if ((!exists("GO_mappings")) && file.exists(backupFls[["GO mappings"]])) {
+                loadFun(backupFls[["GO mappings"]])
               }
-              if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) {
-                loadFun("GO_terms.RDS")
+              if ((!exists("GO_terms")) && file.exists(backupFls[["GO terms"]])) {
+                loadFun(backupFls[["GO terms"]])
               }
               #
               Src <- paste0(libPath, "/extdata/Sources/GO_enrich.R")
@@ -1139,11 +1136,11 @@ if (exists("PTMstats") && nrow(PTMstats)) {
 if (Annotate) {
   # (Testing for existence in case we are rerunning part of the script)
   if (exists("GO_terms")) {
-    saveFun(GO_terms, file = "GO_terms.RDS")
+    saveFun(GO_terms, backupFls[["GO terms"]])
     rm(GO_terms)
   }
   if (exists("GO_mappings")) {
-    saveFun(GO_mappings, file = "GO_mappings.RDS")
+    saveFun(GO_mappings, backupFls[["GO mappings"]])
     rm(GO_mappings)
   }
   # otherwise they are also unused further down.

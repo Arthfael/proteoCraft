@@ -735,7 +735,9 @@ if (F.test) {
   tempData[, Fkol] <- tmpPGf[match(tempData$`Protein IDs`, tmpPGf$`Protein IDs`), Fkol]
 }
 if (Annotate && LocAnalysis) {
-  if ((!exists("GO_terms")) && file.exists("GO_terms.RDS")) { loadFun("GO_terms.RDS") }
+  if ((!exists("GO_terms")) && file.exists(backupFls[["GO terms"]])) {
+    loadFun(backupFls[["GO terms"]])
+  }
   GOCC <- GO_terms$ID[GO_terms$Ontology == "CC"]
   tempData$"GO-ID (CC)" <- lapply(strsplit(tempData$`GO-ID`, ";"), \(x) { base::intersect(x, GOCC) })
   w <- which(lengths(tempData$"GO-ID (CC)") > 0L)

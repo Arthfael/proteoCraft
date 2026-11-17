@@ -38,8 +38,8 @@ minReps <- max(c(repThresh, round(length(Rep)*repProp))) # Let's be stringent an
 #
 # We now get for WGCNA the data prepared for downstream analyses by cluster_Heatmap_PrepTop.R
 if (!exists("clustDat")) {
-  if (exists("clustDat_fl") && file.exists(clustDat_fl)) {
-    loadFun(clustDat_fl)
+  if (file.exists(backupFls["HeatMaps_data"])) {
+    loadFun(backupFls["HeatMaps_data"])
   } else {
     Src <- paste0(libPath, "/extdata/Sources/cluster_Heatmap_PrepTop.R")
     #rstudioapi::documentOpen(Src)

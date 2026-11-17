@@ -136,7 +136,7 @@ xlDat <- setNames(lapply(names(xlDat), \(x) {
   colnames(x) <- gsub("///NL///", "\n", gsub("///VS/// ", "/\n", colnames(x)))
   return(x)
 }), names(xlDat))
-saveFun(xlDat, paste0(wd, "/Tables/xlDat.RDS"))
+saveFun(xlDat, backupFls["Excel report data"])
 #
 cat("    ---> writing table...\n")
 openxlsx2::wb_save(WorkBook, repFl2)
