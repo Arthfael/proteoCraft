@@ -252,7 +252,7 @@ fastasTbl$Species[whFnd] <- vapply(fastasTbl$Headers[whFnd], \(hdrs) { #hdrs <- 
   hdrs <- hdrs[nchar(hdrs) > 0L]
   hdrs <- grep("^[A-Z][a-z]+( [a-zA-Z]+( .*)?)", hdrs, value = TRUE)
   if (length(hdrs)) {
-    hdrs <- data.table(Species = hdrs, Species2 = hdrs)
+    hdrs <- data.table::data.table(Species = hdrs, Species2 = hdrs)
     hdrs <- hdrs[, .(Count = length(c(Species))), by = .(Species = Species2)]
     hdrs <- as.data.frame(hdrs)
     hdrs <- hdrs[order(hdrs$Count, decreasing = TRUE),]
@@ -781,7 +781,7 @@ db %<o% plyr::rbind.fill(dbs)
 wInt <- which(db$"Protein of interest")
 wRst <- which(!db$"Protein of interest")
 db <- db[c(wInt, wRst),]
-tst <- data.table(Row = 1L:nrow(db), Seq = db$Sequence)
+tst <- data.table::data.table(Row = 1L:nrow(db), Seq = db$Sequence)
 tst <- tst[, .(Row = min(Row)), by = .(Seq)]
 n <- nrow(db)-nrow(tst)
 if (n) {
@@ -799,7 +799,7 @@ for (i in 1L:nrow(fastasTbl)) { if (!file.exists(paste0(wd, "/", fastasTbl$Name[
 if (scrptType == "noReps") { AnalysisParam$fastasTbl <- list(fastasTbl$Full) }
 
 # Filter for repeats, mark as contaminants
-tmp <- as.data.table(db[, c("Potential contaminant", "Protein ID")])
+tmp <- data.table::as.data.table(db[, c("Potential contaminant", "Protein ID")])
 tst <- tmp[, .(x = c(`Potential contaminant`)), by = .(Group.1 = `Protein ID`)]
 tst <- as.data.frame(tst)
 u <- tst$Group.1

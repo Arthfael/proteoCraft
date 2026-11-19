@@ -71,8 +71,8 @@ for (grp in grps) { #grp <- grps[1L]
   ls <- lapply(lsKl, \(kl) { data2[[kl]] })
   tmp <- do.call(paste, c(data2[, lsKl], sep = "---"))
   if (LabelType == "Isobaric") {
-    smpls <- gsub(topattern(ev.ref["Original"]), "", quntKol)
-    data2a <- as.data.table(data2[, quntKol])
+    smpls <- sub(topattern(ev.ref["Original"]), "", quntKol)
+    data2a <- data.table::as.data.table(data2[, quntKol])
     colnames(data2a) <- quntKol
     data2a$Group <- tmp
     data2a <- data2a[, lapply(.SD, sum, na.rm = TRUE), keyby = Group]
@@ -87,7 +87,7 @@ for (grp in grps) { #grp <- grps[1L]
   }
   if (LabelType == "LFQ") {
     smpls <- if (X == "Parent sample") { get("MQ.Exp") } else { get(X) }
-    data2a <- data.table(Intensity = data2[[ev.col["Original"]]], Group = tmp)
+    data2a <- data.table::data.table(Intensity = data2[[ev.col["Original"]]], Group = tmp)
     data2a <- data2a[, .(`A (mean log10 Intensity)` = sum(Intensity, na.rm = TRUE)),
                      keyby = Group]
     data2a$`A (mean log10 Intensity)` <- log10(data2a$`A (mean log10 Intensity)`)

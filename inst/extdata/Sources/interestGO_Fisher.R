@@ -73,7 +73,7 @@ if (length(GO.tabs)) {
   #
   #
   requireNamespace("data.table")
-  Mappings <- data.table(dbGO)
+  Mappings <- data.table::data.table(dbGO)
   Mappings <- Mappings[, .(GO = list(unique(GO))), by = .(Protein = Protein)]
   Mappings <- as.data.frame(Mappings)
   Mappings <- setNames(Mappings$GO, Mappings$Protein)

@@ -58,8 +58,8 @@ if (runRankAbundPlots || runProfPlots) {
   }
   tstOrg2 %<o% c()
   if (tstOrg) {
-    tmp1 <- as.data.table(listMelt(setNames(strsplit(PG$`Protein IDs`, ";"), 1L:nrow(PG))))
-    tmp2 <- as.data.table(listMelt(setNames(strsplit(pep$Proteins, ";"), 1L:nrow(pep))))
+    tmp1 <- data.table::as.data.table(listMelt(setNames(strsplit(PG$`Protein IDs`, ";"), 1L:nrow(PG))))
+    tmp2 <- data.table::as.data.table(listMelt(setNames(strsplit(pep$Proteins, ";"), 1L:nrow(pep))))
     tmp <- base::union(tmp1$value, tmp2$value)
     tmp <- data.frame(ID = tmp,
                       Org = db[match(tmp, db$`Protein ID`),
@@ -240,8 +240,8 @@ if (runRankAbundPlots || runProfPlots) {
     }
   }
   # Custom colors
-  myPG2 <- data.table(Category = myPG$Category,
-                      PG = myPG$`Protein Group`)
+  myPG2 <- data.table::data.table(Category = myPG$Category,
+                                  PG = myPG$`Protein Group`)
   myPG2 <- myPG2[, .(x = unique(Category)),
                  by = .(Group.1 = PG)]
   myPG2 <- as.data.frame(myPG2)
@@ -255,11 +255,11 @@ if (runRankAbundPlots || runProfPlots) {
   myPG$Protein_group <- myPG2$Protein_group[match(myPG$`Protein Group`, myPG2$Group.1)]
   PG_varkol <- base::union(PG_varkol, "Protein_group")
   #
-  myPep2 <- data.table(Category = myPep$Category,
-                       Pep = myPep$`Modified sequence`)
+  myPep2 <- data.table::data.table(Category = myPep$Category,
+                                   Pep = myPep$`Modified sequence`)
   myPep2 <- myPep2[, .(x = unique(Category)),
                    by = .(Group.1 = Pep)]
-  myPep2 <- as.data.frame(myPep2)
+  myPep2 <- data.table::as.data.frame(myPep2)
   myPep2$Peptidoform <- "darkgrey"
   w <- which(myPep2$x == "Contaminant")
   suppressWarnings(myPep2$Peptidoform[w] <- RColorBrewer::brewer.pal(min(c(length(w), 12L)), "Blues"))

@@ -84,7 +84,7 @@ if (Annotate) {
     #tst3c$L <- lengths(tst3c$names)
     #max(tst3c$L) # Should be 1 now
     #
-    tst1 <- as.data.table(tst1)
+    tst1 <- data.table::as.data.table(tst1)
     tst1 <- tst1[, .(GO = paste(name, collapse = ";"),
                      ID = paste(ID, collapse = ";")),
                  by = .(row = tst1$row)]
@@ -102,7 +102,7 @@ if (Annotate) {
   }
   tst1 <- unlist(strsplit(Parsed_annotations$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(Parsed_annotations$GO, ";"))
-  tst3 <- data.table(ID = tst1, Name = tst2)
+  tst3 <- data.table::data.table(ID = tst1, Name = tst2)
   tst3 <- tst3[, .(Name = list(unique(Name))), by = .(ID = ID)]
   tst3 <- as.data.frame(tst3)
   tst3$N_names <- lengths(tst3$Name)
@@ -146,7 +146,7 @@ if (Annotate) {
 }
 if (Annotate) {
   tst2 <- unlist(strsplit(db$GO, ";"))
-  tst3 <- data.table(ID = tst1, Name = tst2)
+  tst3 <- data.table::data.table(ID = tst1, Name = tst2)
   tst3 <- tst3[, .(Name = list(unique(Name))), by = .(ID = ID)]
   tst3 <- as.data.frame(tst3)
   tst3$N_names <- lengths(tst3$Name)
@@ -163,7 +163,7 @@ if (Annotate) {
   }
   tst1 <- unlist(strsplit(db$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(db$GO, ";"))
-  tst3 <- data.table(A1 = tst1, A2 = tst2)
+  tst3 <- data.table::data.table(A1 = tst1, A2 = tst2)
   tst3 <- tst3[, .(x = unique(A2)), by = .(Group.1 = A1)]
   tst3 <- as.data.frame(tst3)
   #View(tst3[lengths(tst3$x) > 1L,])

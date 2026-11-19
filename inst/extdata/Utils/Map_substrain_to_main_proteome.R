@@ -61,12 +61,12 @@ dig2 <- Digest(setNames(db2$Sequence, db2$`Protein ID`), cl = parClust)
 dig1DF <- listMelt(dig1, ColNames = c("Seq", "ID"))
 dig2DF <- listMelt(dig2, ColNames = c("Seq", "ID"))
 dig2DF <- dig2DF[dig2DF$Seq %in% dig1DF$Seq,]
-dig2DF <- as.data.table(dig2DF)
+dig2DF <- data.table::as.data.table(dig2DF)
 dig2DF <- dig2DF[, .(ID = list(unique(ID))), by = .(Seq = Seq)]
 dig2DF <- as.data.frame(dig2DF)
 dig1DF$Candidates <- dig2DF$ID[match(dig1DF$Seq, dig2DF$Seq)]
 dig1DF <- listMelt(setNames(dig1DF$Candidates, dig1DF$ID), ColNames =  c("ID2", "ID1"))
-# dig1DF <- as.data.table(dig1DF)
+# dig1DF <- data.table::as.data.table(dig1DF)
 # dig1DF <- dig1DF[, .(ID2 = list(unique(ID2))), by = .(ID1 = ID1)]
 # dig1DF <- as.data.frame(dig1DF)
 dig1DF$ID1_Seq <- db1$Sequence[match(dig1DF$ID1, db1$`Protein ID`)]

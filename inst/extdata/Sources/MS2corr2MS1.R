@@ -42,13 +42,13 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
       w <- which(GrpsVct == grp)
       tmp <- listMelt(strsplit(ev[w, ms2Kol], ";"), w, c("Intensity", "Which"))
       tmp$Intensity <- as.numeric(tmp$Intensity)
-      tmp <- as.data.table(tmp)
+      tmp <- data.table::as.data.table(tmp)
       tmp2 <- tmp[, .(MS2 = list(Intensity)), by = .(Which = Which)]
       tmp2 <- tmp2$MS2[match(w, tmp2$Which)]
-      MS2Tbl <- data.table(IDs = ev$id[w],
-                           MS1 = ev[w, ref],
-                           MS2 = tmp2,
-                           mod = ev$"Modified sequence"[w], Z = ev$Charge[w])
+      MS2Tbl <- data.table::data.table(IDs = ev$id[w],
+                                       MS1 = ev[w, ref],
+                                       MS2 = tmp2,
+                                       mod = ev$"Modified sequence"[w], Z = ev$Charge[w])
       MS2Tbl <- MS2Tbl[, .(IDs = list(IDs),
                            MS2 = list(MS2),
                            MS1 = list(MS1),
@@ -149,9 +149,9 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
       ggplot2::ggsave(paste0(dir, "/", ttl, ".svg"), plot,
                       dpi = 150L, width = scl, height = scl, units = "in")
       if (chckMS2Corr) {
-        tst0 <- data.table(Samples_group = tst$Samples_group, Sample = tst$Sample_name,
-                           ModSeq = tst$ModSeq, Charge = tst$Z,
-                           Original = tst$OrigVal, Corrected = tst$CorrVal2)
+        tst0 <- data.table::data.table(Samples_group = tst$Samples_group, Sample = tst$Sample_name,
+                                       ModSeq = tst$ModSeq, Charge = tst$Z,
+                                       Original = tst$OrigVal, Corrected = tst$CorrVal2)
         tst1 <- dcast(tst0, ModSeq+Charge~Sample, value.var = "Original", fun.aggregate = sum)
         tst2 <- dcast(tst0, ModSeq+Charge~Sample, value.var = "Corrected",  fun.aggregate = sum)
         tst1 <- as.data.frame(tst1)

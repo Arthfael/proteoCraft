@@ -127,6 +127,7 @@
   renv::deactivate
   reshape::melt.list
   reshape::cast
+  reshape2::melt
   rhdf5::h5read
   RJSONIO::toJSON
   rsvg::rsvg_png

@@ -198,8 +198,11 @@ if (Param$Norma.Ev.Intens) {
         w <- which(Norma.Ev.Intens.Groups$Groups == grp)
         r <- Norma.Ev.Intens.Groups$"Raw file"[Norma.Ev.Intens.Groups$Groups == grp]
         wg <- which(ev$"Raw file path" %in% r)
-        tmp <- data.table(Uniq = ev$`Unique State`[wg], Grp = ev[wg, Grps2Kol], Int = ev[wg, ev.col["Normalisation"]])
-        tmp <- tmp[, .(x = sum(Int, na.rm = TRUE)), keyby = .(Group.1 = Uniq, Group.2 = Grp)]
+        tmp <- data.table::data.table(Uniq = ev$`Unique State`[wg],
+                                      Grp = ev[wg, Grps2Kol],
+                                      Int = ev[wg, ev.col["Normalisation"]])
+        tmp <- tmp[, .(x = sum(Int, na.rm = TRUE)),
+                   keyby = .(Group.1 = Uniq, Group.2 = Grp)]
         tmp <- data.table::dcast(tmp, Group.1~Group.2)
         colnames(tmp) <- c("Unique State", paste0("Grp", colnames(tmp)[2L:ncol(tmp)]))
         tmp <- as.data.frame(tmp)
@@ -267,8 +270,11 @@ if (Param$Norma.Ev.Intens) {
           cat("     ...", IsobarLab, " sample ", i, "...\n")
           wi <- which(tmpEv$Isobaric.set == i)
           #View(tmpEv[wi, k0])
-          tmp <- as.data.table(tmpEv[wi, c("Unique State", "Fraction", k0)])
-          tmp <- tmp[, lapply(.SD, sum, na.rm = TRUE), keyby = .(`Unique State` = `Unique State`, Fraction = Fraction)]
+          tmp <- data.table::as.data.table(tmpEv[wi,
+                                                 c("Unique State", "Fraction", k0)])
+          tmp <- tmp[, lapply(.SD, sum, na.rm = TRUE),
+                     keyby = .(`Unique State` = `Unique State`,
+                               Fraction = Fraction)]
           tmp <- as.data.frame(tmp)
           Fr <- unique(tmp$Fraction)
           source(parSrc)
@@ -439,7 +445,7 @@ if (LabelType == "Isobaric") {
   er1 <- ev.ref["Adjusted"]
   a0 <- paste0(er0, get(IsobarLab))
   a1 <- paste0(er1, get(IsobarLab))
-  test <- as.data.table(ev[, c("MQ.Exp", a0, a1)])
+  test <- data.table::as.data.table(ev[, c("MQ.Exp", a0, a1)])
   test <- data.table::melt(test, id.vars = "MQ.Exp")
   test <- as.data.frame(test)
   test$Norm <- NA_character_

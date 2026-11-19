@@ -455,24 +455,9 @@ if (reUseAnnotBckp) {
 
 # Check peptide-to-protein assignment, and isolate histones peptides
 ### NB: This doesn't take into consideration N-terminal methionines!!!
-if (Update_Prot_matches) {
-  I_eq_L %<o% TRUE
-  fl <- paste0(dstDir, "/evmatch.RDS")
-  if (file.exists(fl)) { loadFun(fl) } else {
-    Seq <- unique(ev$Sequence)
-    DB <- db
-    Src <- paste0(libPath, "/extdata/Sources/ProtMatch.R")
-    #rstudioapi::documentOpen(Src)
-    source(Src)
-    saveFun(evmatch, fl)
-  }
-  ev$Search_engine_proteins <- ev$Proteins
-  ev$Proteins <- evmatch$Proteins[match(ev$Sequence, evmatch$Sequence)]
-  #ev$Proteins <- ev$Search_engine_proteins
-  #View(ev[, c("Search_engine_proteins", "Proteins", "Histone(s)", "Modified sequence_verbose")])
-  #sum(ev$Search_engine_proteins != ev$Proteins)
-  #sum(ev$Search_engine_proteins == ev$Proteins)
-}
+Src <- paste0(libPath, "/extdata/Sources/ProtMatchTop.R")
+#rstudioapi::documentOpen(Src)
+source(Src)
 w <- which((ev$Proteins == "") | is.na(ev$Proteins))
 lw <- length(w)
 if (lw) {

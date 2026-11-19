@@ -5,11 +5,12 @@ write.csv(AA_biases, paste0(wd, "/Workflow control/AA_biases.csv"), row.names = 
 qcDir <- paste0(wd, "/Summary plots")
 if (!dir.exists(qcDir)) { dir.create(qcDir, recursive = TRUE) }
 ttl <- "Amino acid observational biases"
+m <- ceiling(max(abs(log2(AA_biases$Ratio)))*10)/10
 plot <- ggplot2::ggplot(AA_biases) +
   ggplot2::geom_col(ggplot2::aes(x = AA, y = log2(Ratio), fill = AA)) +
   ggplot2::geom_hline(yintercept = 0, colour = "red", linetype = "dashed") +
   ggplot2::xlab("Amino acid") + ggplot2::ylab("log2 ratio(freq. obs. dataset / freq. parent proteome)") +
-  ggplot2::scale_y_continuous(expand = c(0L, 0L)) +
+  ggplot2::scale_y_continuous(limits = c(-m, m), expand = c(0L, 0L)) +
   ggplot2::scale_fill_viridis_d(begin = 0.25) +
   ggplot2::ggtitle(ttl, subtitle = "(observed dataset VS parent proteome)") + ggplot2::theme_bw() +
   ggplot2::theme(legend.position = "none")

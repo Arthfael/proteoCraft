@@ -152,7 +152,7 @@ if (!exists("QuantUMS")) { QuantUMS <- FALSE }
 if ((length(inDirs) == 1L) && QuantUMS && ("Quantity Quality" %in% colnames(ev))) {  # DiaNN specific:
   if (!"Quantity Quality" %in% colnames(pep)) {
     requireNamespace("data.table")
-    tmp <- data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
+    tmp <- data.table::data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
     tmp <- tmp[, .(Qual= mean(Qual)), by = .(ModSeq)]
     tmp <- as.data.frame(tmp)
     pep$"Quantity Quality" <- tmp$Qual[match(pep$"Modified sequence", tmp$ModSeq)]

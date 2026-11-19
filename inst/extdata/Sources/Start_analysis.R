@@ -62,6 +62,11 @@ srchSoftOpt <- c("MaxQuant", "DiaNN", "FragPipe", "Proteome Discoverer")
 SearchSoftware %<o% setNames(gsub(" ", "", toupper(srchSoftOpt)),
                              srchSoftOpt)
 #
+# In case they do not exist yet:
+RPath %<o% as.data.frame(library()$results)
+RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
+libPath %<o% paste0(RPath, "/proteoCraft")
+#
 locDirsFl2 <- paste0(homePath, "/Default_locations.xlsx")
 flTst <- file.exists(locDirsFl2)
 if (!flTst) { file.copy(paste0(RPath, "/proteoCraft/extdata/Default_locations.xlsx"), locDirsFl2) }
@@ -167,7 +172,7 @@ inputTbl2$`Input search folder` <- vapply(paste0("selectDir___", rng0), \(id) {
 }, "")
 fSlct0 <- \(i, data = inputTbl, opt = srchSoftOpt) {
   srchSoftOpt2 <- paste0("<option value=\"", opt, "\"",
-                         c("", " selected")[(opt == data$"Search engine"[i])+1],
+                         c("", " selected")[(opt == data$"Search engine"[i])+1L],
                          ">", opt, "</option>", collapse = "")
   return(paste0("<select id=\"searchSoft___", as.character(i),
                 "\" style=\"width:200px;\">", srchSoftOpt2, "</select>"))
@@ -176,7 +181,7 @@ inputTbl2$"Search engine" <- vapply(1L:nr0, fSlct0, "") # not rng0 here!
 inputTbl2$Remove <- vapply(paste0("removeMe___", rng0), \(id) {
   as.character(shiny::actionButton(id, "Remove dataset"))
 }, "")
-colnames(inputTbl2)[4] <- ""
+colnames(inputTbl2)[4L] <- ""
 #
 ui <- shiny::shinyUI(
   shiny::fluidPage(
@@ -489,15 +494,14 @@ tst2 <- c(vapply(tst2, \(x) { x[[1L]] }, ""),
 tst2 <- tst2[!is.na(tst2)]
 tst2 <- paste(tst2[1L:(min(c(2L, length(tst2))))], collapse = "")
 tst3 <- gsub("[a-z, ]", "", dtstNm)
-projDir %<o% paste0(dirTbl$Path[match("Temporary folder", dirTbl$Folder)], "/", tst2, "_", tst3, "_", tst)
-#wd %<o% paste0(projDir, "/Proc")
-wd %<o% projDir
+projDir %<o% dirTbl$Path[match("Temporary folder", dirTbl$Folder)]
+wd %<o% paste0(projDir, "/", tst2, "_", tst3, "_", tst)
 paramDir %<o% paste0(wd, "/_param")
 bckpsDir %<o% paste0(wd, "/_backups")
 if (!dir.exists(wd)) { dir.create(wd, recursive = TRUE) }
 if (!dir.exists(paramDir)) { dir.create(paramDir, recursive = TRUE) }
 if (!dir.exists(bckpsDir)) { dir.create(bckpsDir, recursive = TRUE) }
-setwd(projDir)
+setwd(wd)
 #
 msg <- c(paste0("Dataset/project name:\n -> ", dtstNm), "",
          paste0("Script path:\n -> ", ScriptPath), "",
@@ -518,28 +522,14 @@ SearchSoft %<o% setNames(SearchSoftware[SearchSoft],
 inDirs %<o% inDirs
 WhoAmI %<o% WhoAmI
 WorkFlow %<o% WorkFlow
-backupFls %<o% setNames(paste0(bckpsDir, "/",
-                               c("Backup", "QC", "evmatch", "AnalysisParam", "PG_assembly", "Contrasts", "pep_intens_norm",
-                                 "PG_quant", "PG_quant_reNorm", "PG_quant_imput", "covPlots", "ratioPlots", "HeatMaps",
-                                 "HeatMaps_data", "profilePlots", "quantPlots", "Venn_plotly", "xlDat", "volcPlotly",
-                                 "DimRedPlots", "GSEA_plotly", "GO_plot_ly", "GO_mappings", "GO_terms", "Parsed_annotations",
-                                 "CustPG", "limmaFits", "MSqRob", "ROTS"),
-                               ".RDS"),
-                        c("Main", "QC", "evmatch", "Param", "PG_assembly", "Contrasts", "pep_intens_norm",
-                          "PG_quant", "PG_quant_reNorm", "PG_quant_imput", "Coverage", "Ratios", "HeatMaps",
-                          "HeatMaps_data", "Profile", "Ranked", "Venn", "Excel report data", "Vulcan",
-                          "dimRed", "GSEA", "GO plots", "GO mappings", "GO terms", "Annotations",
-                          "custom PGs", "limma", "MSqRob", "ROTS"))
 #
-RPath <- as.data.frame(library()$results)
-RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
-#
+parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
 options(stringsAsFactors = FALSE)
 options(install.packages.compile.from.source = "never")
 #
-
-setwd(wd)
-
+bckpFlsSrc <- paste0(libPath, "/extdata/Sources/backupFiles.R")
+#rstudioapi::documentOpen(bckpFlsSrc)
+source(bckpFlsSrc)
 #
 # We used to save RDS backups with the wrong extension (.RData)
 # So we can re-use these potentially, we will detect them and fix the extension. Let's also ensure we are consistent with capitalization of RDS.
@@ -577,12 +567,6 @@ if (renv) {
 LocAnalysis %<o% (WorkFlow %in% c("LOCALISATION", "LOCALIZATION"))
 IsBioID %<o% (gsub(" |_|-|\\.", "", toupper(WorkFlow)) == "BIOID")
 #
-# Update values
-RPath <- as.data.frame(library()$results)
-RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
-libPath <- paste0(RPath, "/proteoCraft")
-parSrc %<o% paste0(libPath, "/extdata/Sources/make_check_Cluster.R")
-
 # Detect backups and decide whether to keep them
 #labelMode <- match(LabelType, c("LFQ", "Isobaric"))
 FracMapNm %<o% "Fractions map"
@@ -735,21 +719,14 @@ if (length(drs)) {
     }
   }
 }
-#
-# For when reloading an old analysis folder:
 # Move...
-#  - backups to bckpsDir
 #  - parameters to paramDir
-fls <- list.files(wd, full.names = TRUE, include.dirs = FALSE) # Still includes dirs!!!
-fls <- base::setdiff(fls, list.dirs(wd, full.names = TRUE))
-fls <- grep("\\.(html|xlsx)$", fls, value = TRUE, invert = TRUE)
-fls1 <- fls[basename(fls) %in% basename(backupFls)]
-fls2 <- base::setdiff(fls, fls1)
-if (length(fl1)) {
-  fs::file_move(fls1, sub(topattern(wd), bckpsDir, fls1))
-}
-if (length(fl2)) {
-  fs::file_move(fls2, sub(topattern(wd), paramDir, fls2))
+#  - backups to bckpsDir
+for (dr in protectDirs) {
+  if (!dir.exists(dr)) { dir.create(dr, recursive = TRUE) }
+  ls <- list.files(wd, full.names = TRUE, include.dirs = FALSE) # Still includes dirs!!!
+  ls <- base::setdiff(ls, list.dirs(wd, full.names = TRUE))
+  ls <- grep("\\.(html|xlsx)$", ls, value = TRUE, invert = TRUE)
 }
 
 # Re-load fasta of proteins of interest?

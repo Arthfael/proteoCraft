@@ -20,7 +20,7 @@ tst <- as.data.frame(do.call(cbind, tst))
 kol <- colnames(tst) <- cleanNms(colnames(tst))
 tst <- apply(tst, 1L, \(x) { kol[x == max(x)][1L] })
 requireNamespace("data.table")
-tst2 <- as.data.table(ev[, c("Charge", "Modified sequence")])
+tst2 <- data.table::as.data.table(ev[, c("Charge", "Modified sequence")])
 tst2 <- tst2[, .(x = round(mean(Charge))),
              by = .(Group.1 = `Modified sequence`)]
 tst2 <- as.data.frame(tst2)

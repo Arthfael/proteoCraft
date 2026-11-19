@@ -19,11 +19,11 @@ if (length(c(ROCfilt_Pos, ROCfilt_Neg))) {
   cat("PSMs filtering using ROC analysis\n")
   dir <- paste0(wd, "/Workflow control/", evNm, "s/ROC analysis")
   if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-  tmp <- data.table(Proteins = ev$Proteins, Sequence = ev$Sequence)
+  tmp <- data.table::data.table(Proteins = ev$Proteins, Sequence = ev$Sequence)
   tmp <- tmp[, .(Proteins = unique(Proteins)), by = .(Sequence = Sequence)]
   tmp <- as.data.frame(tmp)
   tmp <- listMelt(strsplit(tmp$Proteins, ";"), tmp$Sequence, c("Protein", "Sequence"))
-  tmp2 <- data.table(Intensity = ev$Intensity, Sequence = ev$Sequence)
+  tmp2 <- data.table::data.table(Intensity = ev$Intensity, Sequence = ev$Sequence)
   tmp2 <- tmp2[, .(Intensity = sum(Intensity, na.rm = TRUE)), by = .(Sequence = Sequence)]
   tmp2 <- as.data.frame(tmp2)
   tmp2 <- tmp2[tmp2$Intensity > 0,]

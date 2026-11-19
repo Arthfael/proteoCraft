@@ -643,80 +643,103 @@ FP_to_MQ <- function(FP_Workflow,
     tmp1$Type <- "Delta mass"
     tmp1$"Type of search" <- "Open"
     #
-    # Now, for historical reasons, I have stuck with the "2 characters PTM mark" format which MaxQuant used to use.
-    # It is debatable whether that still makes sense.
-    # Yes.
-    # But I am not ready to review all of my code base to change that.
+    ###############################################################################
+    # Make 2-character PTM marks                                                  #
+    ###############################################################################
+    # Now, for historical reasons, I have stuck with the "2 characters PTM mark" format which older MaxQuant versions used to use.
+    # It is debatable whether that still makes sense. Probably not.
+    # Yeah...
+    # But, I have no time to review all of my code base to change that just yet.
     # So... this means we need to generate marks for all of these PTMs...
     # Oh dear...
-    # Well, let's try.
-    #opt <- c(letters, 0L:9L, "!", "?", ".", "*", "#", "^", "<", ">", "&", "$", "@", "-", "+", ";", ",", ":", "~", "=", "%")
+    # Well, let's try:
+    markOpt <- c(letters, 0L:9L, "!", "?", ".", "*", "#", "^", "<", ">", "&", "$", "@", "-", "+", ";", ",", ":", "~", "=", "%")
     # Of course, we cannot ever hope to get 2-letter marks for all possible PTMs, because, e.g.:
     # nrow(UniMod)  # = 3704
-    # length(opt)^2 # = 3025 -> we need more characters than 2, or more options per character
+    # length(markOpt)^2L # = 3025 -> we need more characters than 2, or more options per character (use different encoding?)
     # 
-    # So, for now, I will indicate any Open mod(s) as "!m" in the "Modified sequence" column
     #
-    tmp1$Mark <- "!m"
-    ###############################################################################
-    # Below: commented code for trying to build better marks.                     #
-    # Keep this... but useless for now, since Open search PTMs are not localized. #
-    ###############################################################################
+    tmp1$Mark <- ""
+    # - Marks from the same PTM from the closed search
+    tmp1 <- tmp1[order(tmp1$UniMod),]
+    w <- which(tmp1$UniMod %in% allPTMs$UniMod)
+    if (length(w)) {
+      tmp1$UniMod[w] <- allPTMs$Mark[match(tmp1$UniMod[w], allPTMs$UniMod)]
+    }
+    # - Marks based on amino-acid deletion or addition
+    #   - Deletion
+    g1 <- grep("^(.+/)?Deletion of [A-Z](/.+)?$", tmp1$`Full name`)
+    #tmp1$`Full name`[g1]
+    if (length(g1)) {
+      tmp <- listMelt(strsplit(tmp1$`Full name`[g1], "/"), g1)
+      tmp <- tmp[grep("^Deletion of [A-Z]$", tmp$value),]
+      tmp$value <- sub("^Deletion of ", "", tmp$value)
+      tmp$Mark <- paste0("-", tolower(tmp$value))
+      m <- match(g1, tmp$L1)
+      tmp1$Mark[g1] <- tmp$Mark[m]
+      tmp1$AA[g1] <- tmp$value[m]
+      tmp1$Position[g1] <- "Anywhere"
+    }
+    #   - Addition
+    g2 <- grep("^(.+/)?Addition of [A-Z](/.+)?$", tmp1$`Full name`)
+    if (length(g2)) {
+      tmp <- listMelt(strsplit(tmp1$`Full name`[g2], "/"), g2)
+      tmp <- tmp[grep("^Addition of [A-Z]$", tmp$value),]
+      tmp$value <- sub("^Addition of ", "", tmp$value)
+      tmp$Mark <- paste0("+", tolower(tmp$value))
+      m <- match(g2, tmp$L1)
+      tmp1$Mark[g2] <- tmp$Mark[m]
+      tmp1$AA[g2] <- lapply(g2, \(x) { NULL })
+      tmp1$Position[g2] <- "Anywhere"
+    }
+    # - Marks from the mass shift
+    w <- which(tmp1$Mark == "")
+    if (length(w)) {
+      tmp1$Mark_opt2 <- ""
+      w1a <- w[(tmp1$`Mass delta`[w] > 0) & (tmp1$`Mass delta`[w] < 10)]
+      #w1b <- w[(tmp1$`Mass delta`[w] > 0) & (tmp1$`Mass delta`[w] < 100) & (tmp1$`Mass delta`[w] >= 10)] # No! We don't want confusion with UniMod IDs
+      w2 <- w[(tmp1$`Mass delta`[w] < 0) & (tmp1$`Mass delta`[w] > -10)]
+      if (length(w1a)) { tmp1$Mark_opt2[w1a] <- paste0("+", as.character(round(tmp1$`Mass delta`[w1a]))) }
+      #if (length(w1b)) { tmp1$Mark_opt2[w1b] <- as.character(round(tmp1$`Mass delta`[w1b])) }
+      if (length(w2)) { tmp1$Mark_opt2[w2] <- as.character(round(tmp1$`Mass delta`[w2])) }
+      wNR <- w[!vapply(w, \(i) {
+        if (i == 1L) { return(TRUE) }
+        tmp1$Mark_opt2[i] %in% c(allPTMs$Mark, tmp1$Mark[1L:(i-1L)], tmp1$Mark_opt2[1L:(i-1L)], "!m")
+      }, TRUE)]
+      tmp1$Mark[wNR] <- tmp1$Mark_opt2[wNR]
+    }
+    # - Marks from the shortened PTM name
+    w <- which(tmp1$Mark == "")
+    if (length(w)) {
+      tmp1$Mark_opt1 <- ""
+      tmp1$Mark_opt1[w] <- tolower(substr(tmp1$`Full name`[w], 1L, 2L))
+      wNR <- w[!vapply(w, \(i) {
+        if (i == 1L) { return(TRUE) }
+        tmp1$Mark_opt1[i] %in% c(allPTMs$Mark, tmp1$Mark[1L:(i-1L)], tmp1$Mark_opt1[1L:(i-1L)], "!m")
+      }, TRUE)]
+      tmp1$Mark[wNR] <- tmp1$Mark_opt1[wNR]
+    }
+    # - Automatically generated marks
+    w <- which(tmp1$Mark == "")
+    if (length(w)) {
+      markOpt2 <- do.call(paste, c(as.data.frame(gtools::permutations(length(markOpt), 2L, markOpt)), sep = ""))
+      markOpt2 <- base::setdiff(markOpt2, c(allPTMs$Mark, tmp1$Mark, "!m"))
+      tmp1$Mark[w] <- markOpt2[1L:length(w)]
+    }
+    # - Generic marks for the rest... this will need a fix
+    w <- which(tmp1$Mark == "")
+    if (length(w)) {
+      tmp1$Mark[w] <- "!m"
+    }
     #
-    # tmp1$Mark <- ""
-    # g1 <- grep("^(.+/)?Deletion of [A-Z](/.+)?$", tmp1$`Full name`)
-    # if (length(g1)) {
-    #   tmp <- substr(sub("^(.+/)?Deletion of ", "", tmp1$`Full name`[g1]), 1L, 1L)
-    #   #tmp1$Position[g1] <- tmp
-    #   tmp1$Mark[g1] <- paste0("-", tolower(tmp))
-    # }
-    # g2 <- grep("^(.+/)?Addition of [A-Z](/.+)?$", tmp1$`Full name`)
-    # if (length(g2)) {
-    #   tmp <- substr(sub("^(.+/)?Addition of ", "", tmp1$`Full name`[g2]), 1L, 1L)
-    #   #tmp1$Position[g2] <- tmp # Nope, not here!
-    #   tmp1$Mark[g2] <- paste0("+", tolower(tmp))
-    # }
-    # tmp1 <- tmp1[order(tmp1$UniMod),]
-    # w <- which(tmp1$UniMod %in% allPTMs$UniMod)
-    # if (length(w)) {
-    #   tmp1$UniMod[w] <- allPTMs$Mark[match(tmp1$UniMod[w], allPTMs$UniMod)]
-    # }
-    # w <- which(tmp1$Mark == "")
-    # if (length(w)) {
-    #   tmp1$Mark[w] <- "!m"
-    #   # tmp1$Mark_opt1 <- ""
-    #   # tmp1$Mark_opt1[w] <- tolower(substr(tmp1$`Full name`[w], 1L, 2L))
-    #   # wNR <- w[!vapply(w, \(i) {
-    #   #   if (i == 1L) { return(FALSE) }
-    #   #   tmp1$Mark_opt1[i] %in% c(allPTMs$Mark, tmp1$Mark[1L:(i-1L)], tmp1$Mark_opt1[1L:(i-1L)])
-    #   # }, TRUE)]
-    #   # tmp1$Mark[wNR] <- tmp1$Mark_opt1[wNR]
-    # }
-    # w <- which(tmp1$Mark == "")
-    # if (length(w)) {
-    #   tmp1$Mark_opt2 <- ""
-    #   w1a <- w[(tmp1$`Mass delta`[w] > 0) & (tmp1$`Mass delta`[w] < 10)]
-    #   w1b <- w[(tmp1$`Mass delta`[w] > 0) & (tmp1$`Mass delta`[w] < 100) & (tmp1$`Mass delta`[w] >= 10)]
-    #   w2 <- w[(tmp1$`Mass delta`[w] < 0) & (tmp1$`Mass delta`[w] > -10)]
-    #   if (length(w1a)) { tmp1$Mark_opt2[w1a] <- paste0("+", as.character(round(tmp1$`Mass delta`[w1a]))) }
-    #   if (length(w1b)) { tmp1$Mark_opt2[w1b] <- as.character(round(tmp1$`Mass delta`[w1b])) }
-    #   if (length(w2)) { tmp1$Mark_opt2[w2] <- as.character(round(tmp1$`Mass delta`[w2])) }
-    #   wNR <- w[!vapply(w, \(i) {
-    #     if (i == 1L) { return(FALSE) }
-    #     tmp1$Mark_opt2[i] %in% c(allPTMs$Mark, tmp1$Mark[1L:(i-1L)], tmp1$Mark_opt2[1L:(i-1L)])
-    #   }, TRUE)]
-    #   tmp1$Mark[wNR] <- tmp1$Mark_opt2[wNR]
-    # }
-    # w <- which(tmp1$Mark == "")
-    # if (length(w)) {
-    #   opt2 <- do.call(paste, c(as.data.frame(gtools::permutations(length(opt), 2L, opt)), sep = ""))
-    #   opt2 <- base::setdiff(opt2, c(allPTMs$Mark, tmp1$Mark))
-    #   tmp1$Mark[w] <- opt2[1L:length(w)]
-    # }
     tmp1$"Full name" <- gsub(" ", "_", gsub(",", ".", gsub("\\(", "{", gsub("\\)", "}", tmp1$"Full name"))))
     tmp1$"Type of search" <- "Open"
+    tmp1$ID <- paste("open", as.character(1L:nrow(tmp1)))
+    tmp1$"Mass shift" <- tmp1$"Mass delta"
+    mrgCol <- c("Mass delta", "Full name", "UniMod", "ID", "Type", "Position", "AA", "Mark", "Mass shift", "Type of search")
+    #View(tmp1[, mrgCol])
     allPTMs <- plyr::rbind.fill(allPTMs,
-                                tmp1[, c("Full name", "Mass delta", "UniMod", "Position", "AA", "Type", "Type of search", "Mark")])
+                                tmp1[, mrgCol])
     orig2name <- listMelt(tmp1$Full, tmp1$`Full name`, c("Orig", "Name"))
     orig2name$Mark <- tmp1$Mark[match(orig2name$Name, tmp1$`Full name`)]
     row2orig[, c("Name", "Mark")] <- orig2name[match(row2orig$Full, orig2name$Orig), c("Name", "Mark")]
@@ -724,9 +747,7 @@ FP_to_MQ <- function(FP_Workflow,
     wMod2 <- unique(row2orig$row)
   }
   # Filter peptides with ambiguous/non-classic amino acids 
-  aaPat <- paste(AA, collapse = "|")
-  parallel::clusterExport(cl, list("aaPat", "allPTMs", "OpenSearch"), envir = environment())
-  test <- gsub(aaPat, "", PSMs$Peptide)
+  test <- gsub(paste(AA, collapse = "|"), "", PSMs$Peptide)
   w <- which(test == "")
   if (length(w) < nrow(PSMs)) {
     warning("Removing peptides with unknown amino acids!s")
@@ -758,8 +779,10 @@ FP_to_MQ <- function(FP_Workflow,
   }
   tmp <- tmp[order(tmp$row, tmp$prot),]
   tmp <- data.table::as.data.table(tmp)
-  tmp <- tmp[, .(prot2 = list(unique(prot))), by = .(row = row, prot = prot)]
-  tmp <- tmp[, .(prots = paste(prot2, collapse = ";")), by = .(row = row)]
+  tmp <- tmp[, .(prot2 = list(unique(prot))),
+             by = .(row = row, prot = prot)]
+  tmp <- tmp[, .(prots = paste(prot2, collapse = ";")),
+             by = .(row = row)]
   tmp <- as.data.frame(tmp)
   EV$Proteins <- tmp$prots[match(1L:nrow(EV), tmp$row)]
   if (isWellBehaved) {
@@ -879,7 +902,8 @@ FP_to_MQ <- function(FP_Workflow,
   tmpJust$Name <- strsplit(tmpJust$Name, ",")
   tmpJust <- listMelt(tmpJust$Name, tmpJust$row)
   tmpJust <- data.table::as.data.table(tmpJust)
-  tmpJust <- tmpJust[, .(n = .N), by = .(row = L1, Mods = value)]
+  tmpJust <- tmpJust[, .(n = .N),
+                     by = .(row = L1, Mods = value)]
   tmpJust$n <- as.character(tmpJust$n)
   tmpJust$modTag <- tmpJust$Mods
   w2p <- which(tmpJust$n != "1")
@@ -900,7 +924,8 @@ FP_to_MQ <- function(FP_Workflow,
   if (OpenSearch) {
     EV$`Modified sequence`[wMod2] <- sub("_$", "(!m)_", EV$`Modified sequence`[wMod2])
     tmpVerb <- data.table::as.data.table(row2orig)
-    tmpVerb <- tmpVerb[, .(n = .N), by = .(row = row, Mods = Name)]
+    tmpVerb <- tmpVerb[, .(n = .N),
+                       by = .(row = row, Mods = Name)]
     tmpVerb$n <- as.character(tmpVerb$n)
     tmpVerb$modTag <- tmpVerb$Mods
     w2p <- which(tmpVerb$n != "1")

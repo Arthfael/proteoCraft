@@ -285,10 +285,10 @@ if (normPGs) {
   #
   #   - Ratios
   allContr <- sub(topattern(Prot.Rat.Root), "", RatKol)
-  temp1 <- data.table(quantData[, RatKol])
+  temp1 <- data.table::data.table(quantData[, RatKol])
   colnames(temp1) <- allContr
   temp1 <- dfMelt(temp1)
-  temp2 <- data.table(quantData_norm[, RatKol])
+  temp2 <- data.table::data.table(quantData_norm[, RatKol])
   colnames(temp2) <- allContr
   temp2 <- dfMelt(temp2)
   temp1$Norm <- "Original"
@@ -322,10 +322,10 @@ if (normPGs) {
   #
   # - Peptides
   #   - Intensities
-  temp1 <- data.table(pep[, paste0(pep.ref[prevRef], mySamples)])
+  temp1 <- data.table::data.table(pep[, paste0(pep.ref[prevRef], mySamples)])
   colnames(temp1) <- Samples
   temp1 <- dfMelt(temp1)
-  temp2 <- data.table(pepQuantData_norm[, paste0(pep.ref["Back-norm"], mySamples)])
+  temp2 <- data.table::data.table(pepQuantData_norm[, paste0(pep.ref["Back-norm"], mySamples)])
   colnames(temp2) <- Samples
   temp2 <- dfMelt(temp2)
   temp1$Norm <- "Original"

@@ -20,7 +20,7 @@ if (exists("scrptType")) {
   tmp_EM$Use <- TRUE
 }
 tmp <- as.character(ev$id)
-tmp2 <- data.table(id = tmp, mqxp = ev[[mtchCol]], mod = ev$"Modified sequence")
+tmp2 <- data.table::data.table(id = tmp, mqxp = ev[[mtchCol]], mod = ev$"Modified sequence")
 tmp2 <- tmp2[order(ev$id, decreasing = FALSE),]
 tmpFl1 <- tempfile(fileext = ".RDS")
 tmpFl2 <- tempfile(fileext = ".RDS")
@@ -48,6 +48,9 @@ if (exists("scrptType")) {
   Smpls <- unique(ev$`Raw file`)
   myGrps <- c(myGrps, Smpls)
 }
+invisible(parallel::clusterCall(parClust, \() {
+  requireNamespace("data.table")
+}))
 tmp4 <- setNames(parallel::parLapply(parClust, myGrps, \(i) { #i <- myGrps[1L] #i <- myGrps[2L]
   tmp3 <- data.table::copy(tmp2) # Because of how data.tables work! No idea how that plays with clusters...
   if (i != "ALLMYSAMPLESTUDUDUDUMMMDADA") {
@@ -73,7 +76,7 @@ if ("Modified sequence_verbose" %in% colnames(ev)) {
 }
 pep$Sequence <- ev$Sequence[rvmtch2]
 pep$Proteins <- ev$Proteins[rvmtch2]
-tmp <- data.table(mod = ev$"Modified sequence", PEP = ev$PEP)
+tmp <- data.table::data.table(mod = ev$"Modified sequence", PEP = ev$PEP)
 tmp <- as.data.frame(tmp[, .(PEP = min(PEP, na.rm = TRUE)), by = .(mod)])
 pep$PEP <- tmp$PEP[match(pep$"Modified sequence", tmp$mod)]
 mtch <- match(ev$Sequence, pep$Sequence)
@@ -96,7 +99,7 @@ for (aa in c("O", "U")) { # Only keep the selenocysteine and pyrrolysine amino a
 #
 pep$Length <- nchar(pep$Sequence)
 ev$Length <- pep$Length[mtch]
-tmp <- data.table(mod = ev$"Modified sequence", Intensity = ev$Intensity)
+tmp <- data.table::data.table(mod = ev$"Modified sequence", Intensity = ev$Intensity)
 tmp$Intensity[!is.finite(tmp$Intensity)] <- NA_real_
 w2 <- which(ev[[mtchCol]] %in% unique(unlist(tmp_EM[tmp_EM$Use, mtchCol])))
 tmp2 <- copy(tmp)
@@ -195,7 +198,7 @@ if (exists("scrptType")) {
     }
   }
   if ("Quantity Quality" %in% colnames(ev)) { # DiaNN specific:
-    tmp <- data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
+    tmp <- data.table::data.table(Qual = ev$"Quantity Quality", ModSeq = ev$"Modified sequence")
     tmp <- tmp[, .(Qual= mean(Qual)), by = .(ModSeq)]
     tmp <- as.data.frame(tmp)
     pep$"Quantity Quality" <- tmp$Qual[match(pep$"Modified sequence", tmp$ModSeq)]

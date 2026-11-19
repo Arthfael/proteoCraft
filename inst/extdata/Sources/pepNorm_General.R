@@ -34,8 +34,6 @@ if (normSequence[[nrmStp]]$Method == "GO terms") {
     tmp$"GO-ID" <- db$"GO-ID"[match(tmp$value, db$`Protein ID`)]
     tmp <- tmp[!is.na(tmp$"GO-ID"),]
     tmp <- listMelt(strsplit(tmp$"GO-ID", ";"), tmp$L1)
-    requireNamespace("data.table")
-    tmp <- as.data.table(tmp)
     tmp <- tmp[tmp$value %in% Norma.Prot.Ratio.to.GO,]
     normFlt <- tmpDat1$id[unique(tmp$L1)]
   } else {

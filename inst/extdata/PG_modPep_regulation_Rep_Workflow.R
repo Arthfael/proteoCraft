@@ -651,8 +651,9 @@ temp_PG <- data.frame(id = PG$id,
 tmp <- listMelt(strsplit(temp_PG$Pep, ";"), PG$id, c("id", "PG"))
 tmp$id <- as.integer(tmp$id)
 tmp$Seq <- pep$Sequence[match(tmp$id, pep$id)]
-tmp <- as.data.table(tmp)
-tmp <- tmp[, .(Seq = list(Seq)), by = .(PG = PG)]
+tmp <- data.table::as.data.table(tmp)
+tmp <- tmp[, .(Seq = list(Seq)),
+           by = .(PG = PG)]
 temp_PG$Pep <- tmp$Seq[match(PG$id, tmp$PG)]
 temp_PG$Seq <- db$Sequence[match(temp_PG$Accession1, db$"Protein ID")]
 exports <- if (!"Sequence coverage [%]" %in% colnames(PG)) {
@@ -749,8 +750,10 @@ temp <- parallel::parApply(parClust, Samplez, 1L, \(Smpl) { #Smpl <- unlist(Samp
     tmp <- temp1$x.List
     tmp <- listMelt(tmp)
     tmp$Seq <- temp_pep$Sequence[match(as.numeric(tmp$value), temp_pep$id)]
-    tmp <- data.table(Seq = tmp$Seq, Row = tmp$L1)
-    tmp <- tmp[, list(Seq = list(unique(Seq))), by = Row]
+    tmp <- data.table::data.table(Seq = tmp$Seq,
+                                  Row = tmp$L1)
+    tmp <- tmp[, list(Seq = list(unique(Seq))),
+               by = Row]
     tmp <- as.data.frame(tmp)
     temp1$Pepseq <- tmp$Seq[match(tmp$Row, 1L:nrow(temp1))]
     temp2 <- lapply(strsplit(e$"Protein group IDs", ";"), as.integer)

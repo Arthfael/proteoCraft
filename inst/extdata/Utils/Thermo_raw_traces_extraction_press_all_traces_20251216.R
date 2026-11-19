@@ -477,7 +477,7 @@ for (nm in names(allChroms)) { #nm <- names(allChroms)[1L]
     nms2 <- names(allChroms[[nm]])
     allChroms[[nm]] <- setNames(lapply(nms2, \(nm2) { #nm2 <- nms2[1L]
       temp <- lapply(fls, \(fl) { #fl <- fls[1L]
-        tmp <- as.data.table(allChroms[[nm]][[nm2]][[fl]])
+        tmp <- data.table::as.data.table(allChroms[[nm]][[nm2]][[fl]])
         tmp$Bin <- round(tmp$`Retention time`, 1L)
         tmp <- tmp[, .(Pressure = mean(Pressure)),
                    by = .(`Raw file` = `Raw file`,

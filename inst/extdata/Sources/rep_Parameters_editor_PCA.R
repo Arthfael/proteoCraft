@@ -47,8 +47,8 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
   ls <- lapply(lsKl, \(kl) { data[[kl]] })
   tmp <- do.call(paste, c(data[, lsKl], sep = "---"))
   if (LabelType == "Isobaric") {
-    kol2 <- gsub(topattern(ev.ref["Original"]), "", kol)
-    data2 <- as.data.table(data[, kol])
+    kol2 <- sub(topattern(ev.ref["Original"]), "", kol)
+    data2 <- data.table::as.data.table(data[, kol])
     colnames(data2) <- kol2
     data2$Group <- tmp
     data2$MQ.Exp <- ev$MQ.Exp[w]
@@ -62,7 +62,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     data2$IsoBarLab <- Exp.map$`Isobaric label details`[match(as.integer(data2$variable), Exp.map$`Isobaric label`)]
     data2$Parent_sample <- do.call(paste, c(data2[, c("MQ.Exp", "IsoBarLab")], sep = "_"))
     data2 <- data2[data2$Parent_sample %in% Exp.map$`Parent sample`,]
-    data2 <- as.data.table(data2)
+    data2 <- data.table::as.data.table(data2)
     data2 <- dcast(data2[, c("Group", "value", "Parent_sample")], Group~Parent_sample)
     data2 <- as.data.frame(data2)
     #data2[, lsKl] <- do.call(rbind, c(strsplit(data2$Group, "---")))
@@ -75,8 +75,8 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
   }
   if (LabelType == "LFQ") {
     kol2 <- if (X == "Parent sample") { get("MQ.Exp") } else { get(X) }
-    data2 <- data.table(Intensity = data[[ev.col["Original"]]],
-                        Group = tmp)
+    data2 <- data.table::data.table(Intensity = data[[ev.col["Original"]]],
+                                    Group = tmp)
     data2 <- data2[, .(`log10(Intensity)` = sum(Intensity, na.rm = TRUE)),
                    keyby = .(Group)]
     data2$`log10(Intensity)` <- log10(data2$`log10(Intensity)`)

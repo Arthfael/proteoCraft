@@ -272,9 +272,11 @@ if (length(w) == 2L) {
   for (i in genkol) { temp[[i]] <- strsplit(temp[[i]], ";") }
   temp <- apply(temp, 1L, \(x) { paste(sort(unique(unlist(x))), collapse = ";") })
 }
-temp2 <- data.table::as.data.table(listMelt(strsplit(ev$Proteins, ";"), 1L:nrow(ev)))
+temp2 <- data.table::as.data.table(listMelt(strsplit(ev$Proteins, ";"),
+                                            1L:nrow(ev)))
 temp2$Gene <- temp[match(temp2$value, db$`Protein ID`)]
-temp2 <- temp2[, .(Genes = paste(Gene, collapse = ";")), keyby = .(id = L1)]
+temp2 <- temp2[, .(Genes = paste(Gene, collapse = ";")),
+               keyby = .(id = L1)]
 temp2 <- as.data.frame(temp2)
 ev$"Gene names" <- temp2$Genes[match(ev$id, temp2$id)]
 
@@ -696,8 +698,10 @@ if (prot.list.Cond) {
 if (!"Protein group IDs" %in% colnames(ev)) {
   temp <- listMelt(strsplit(PG$`Evidence IDs`, ";"), PG$id)
   temp <- temp[order(temp$L1, decreasing = FALSE),]
-  temp <- data.table(value = temp$value, L1 = temp$L1)
-  temp <- temp[, .(x = paste(L1, collapse = ";")), by = .(Group.1 = value)]
+  temp <- data.table::data.table(value = temp$value,
+                                 L1 = temp$L1)
+  temp <- temp[, .(x = paste(L1, collapse = ";")),
+               by = .(Group.1 = value)]
   temp <- as.data.frame(temp)
   temp$Group.1 <- as.integer(temp$Group.1)
   ev$"Protein group IDs" <- temp$x[match(ev$id, temp$Group.1)]
@@ -890,8 +894,10 @@ temp <- parallel::parLapply(parClust, Exp, \(exp) { #exp <- Exp[1L]
     tmp <- temp1$x.List
     tmp <- listMelt(tmp)
     tmp$Seq <- temp_pep$Sequence[match(as.numeric(tmp$value), temp_pep$id)]
-    tmp <- data.table(Seq = tmp$Seq, Row = tmp$L1)
-    tmp <- tmp[, list(Seq = list(unique(Seq))), by = Row]
+    tmp <- data.table::data.table(Seq = tmp$Seq,
+                      Row = tmp$L1)
+    tmp <- tmp[, list(Seq = list(unique(Seq))),
+               by = Row]
     tmp <- as.data.frame(tmp)
     temp1$Pepseq <- tmp$Seq[match(tmp$Row, 1L:nrow(temp1))]
     temp2 <- lapply(strsplit(e$"Protein group IDs", ";"), as.integer)
@@ -1827,12 +1833,14 @@ if (tstOrg) {
   tmp2$Organism <- db[m, dbOrgKol]
   tmp2 <- data.table::as.data.table(tmp2)
   f0 <- \(x) { c("Target", "Contaminant")[("Contaminant" %in% x) + 1L] }
-  tmp2 <- tmp2[, .(x = f0(Organism)), by = .(Group.1 = Row)]
+  tmp2 <- tmp2[, .(x = f0(Organism)),
+               by = .(Group.1 = Row)]
   tmp2 <- as.data.frame(tmp2)
 } else {
   tmp2 <- data.table::as.data.table(tmp2)
   f0 <- \(x) { c("Target", "Contaminant")[("+" %in% x) + 1L] }
-  tmp2 <- tmp2[, .(x = f0(Cont)), by = .(Group.1 = Row)]
+  tmp2 <- tmp2[, .(x = f0(Cont)),
+               by = .(Group.1 = Row)]
   tmp2 <- as.data.frame(tmp2)
 }
 tmp$Organism <- tmp2$x[match(1L:nrow(tmp), tmp2$Group.1)]
@@ -2142,7 +2150,8 @@ if (length(w)) {
   for (i in w) {
     tmp <- listMelt(ev[[i]]) #tmp <- listMelt(strsplit(ev$Proteins, ";"))
     tmp <- data.table::as.data.table(tmp)
-    tmp <- tmp[, .(x = paste(value, collapse = ";")), by = .(row = L1)]
+    tmp <- tmp[, .(x = paste(value, collapse = ";")),
+               by = .(row = L1)]
     ev[[i]] <- tmp$x[match(rg, tmp$row)]
     #tst <- tmp$x[match(rg, tmp$row)]; identical(ev$Proteins, tst)
   }

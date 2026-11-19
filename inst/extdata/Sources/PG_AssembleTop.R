@@ -45,7 +45,8 @@ if (splitByOrg) {
            "Gene names", "Gene names (all)")
   tmpPeps <- lapply(PG_assembly, \(x) { x$Peptides[, c("Modified sequence", kol)] })
   tmpPeps <- plyr::rbind.fill(tmpPeps)
-  tmpPeps <- as.data.table(tmpPeps)
+  requireNamespace("data.table")
+  tmpPeps <- data.table::as.data.table(tmpPeps)
   for (k in kol) {
     if (is.character(tmpPeps[[k]])) { tmpPeps[[k]] <- strsplit(tmpPeps[[k]], ";") }
   }

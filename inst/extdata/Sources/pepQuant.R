@@ -86,12 +86,12 @@ tmp4 <- setNames(parallel::parLapply(parClust, smpls, \(smpl) { #smpl <- smpls[1
         tmp3[!is.finite(tmp3[[kk]]), kk] <- NA_real_
       }
       if (length(j) > 1L) { tmp3 <- apply(tmp3, 1L, sum, na.rm = TRUE) } # Ultra-rare cases where the same parent sample is in different isobaric channels in different fractions
-      tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
-                         Intensity = unlist(tmp3))
+      tmp2 <- data.table::data.table(mod = tmp$"Modified sequence"[w2],
+                                     Intensity = unlist(tmp3))
     }
     if (LabelType == "LFQ") {
-      tmp2 <- data.table(mod = tmp$"Modified sequence"[w2],
-                         Intensity = tmp[w2, ev.col[length(ev.col)]])
+      tmp2 <- data.table::data.table(mod = tmp$"Modified sequence"[w2],
+                                     Intensity = tmp[w2, ev.col[length(ev.col)]])
       tmp2$Intensity[!is.finite(tmp2$Intensity)] <- NA_real_
     }
     tmp2 <- tmp2[, .(Intensity = sum(Intensity, na.rm = TRUE)), by = .(mod)]

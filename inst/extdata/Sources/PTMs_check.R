@@ -19,24 +19,24 @@ if (length(tstEnrich)) {
           inclSearch <- length(uSrch) > 1L
         }
         if (inclSearch) {
-          tst <- data.table(Mod = ev[[Mod]],
-                            MS_file = ev$"Raw file path",
-                            Search = match(ev$Search_ID, uSrch),
-                            temp = 1L)
+          tst <- data.table::data.table(Mod = ev[[Mod]],
+                                        MS_file = ev$"Raw file path",
+                                        Search = match(ev$Search_ID, uSrch),
+                                        temp = 1L)
           tst <- tst[, .(Count = sum(temp)), by = .(Search = Search, MS_file = MS_file, Mod = Mod)]
         } else {
-          tst <- data.table(Mod = ev[[Mod]],
-                            MS_file = ev$"Raw file path",
-                            temp = 1L)
+          tst <- data.table::data.table(Mod = ev[[Mod]],
+                                        MS_file = ev$"Raw file path",
+                                        temp = 1L)
           tst <- tst[, .(Count = sum(temp)), by = .(MS_file = MS_file, Mod = Mod)]
         }
         tst <- as.data.frame(tst)
         Root <- "PSM"
       }
       if (Type == "Pep") {
-        tst <- data.table(Mod = ev[[Mod]],
-                          MS_file = ev$"Raw file path",
-                          ModSeq = ev$`Modified sequence`)
+        tst <- data.table::data.table(Mod = ev[[Mod]],
+                                      MS_file = ev$"Raw file path",
+                                      ModSeq = ev$`Modified sequence`)
         tst <- tst[, .(Count = length(unique(ModSeq))), by = .(MS_file = MS_file, Mod = Mod)]
         tst <- as.data.frame(tst)
         Root <- "peptidoform"
@@ -139,12 +139,12 @@ tmp2 <- tmp2[w,]; m <- m[w]
 tmp2$Cont <- db$`Potential contaminant`[m]
 if (tstOrg) {
   tmp2$Organism <- db[m, dbOrgKol]
-  tmp2 <- as.data.table(tmp2)
+  tmp2 <- data.table::as.data.table(tmp2)
   f0 <- \(x) { c("Target", "Contaminant")[("Contaminant" %in% x)+1L] }
   tmp2 <- tmp2[, .(x = f0(Organism)), by = .(Group.1 = Row)]
   tmp2 <- as.data.frame(tmp2)
 } else {
-  tmp2 <- as.data.table(tmp2)
+  tmp2 <- data.table::as.data.table(tmp2)
   f0 <- \(x) { c("Target", "Contaminant")[("+" %in% x)+1L] }
   tmp2 <- tmp2[, .(x = f0(Cont)), by = .(Group.1 = Row)]
   tmp2 <- as.data.frame(tmp2)

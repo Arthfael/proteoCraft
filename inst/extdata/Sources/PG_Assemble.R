@@ -100,7 +100,8 @@ tmp1 <- seq$.Proteins
 tmp1 <- listMelt(tmp1)
 tmp1 <- tmp1[tmp1$value %in% DB$"Protein ID",]
 tmp1 <- data.table::as.data.table(tmp1)
-tmp1 <- tmp1[, .(value = list(value)), by = .(L1)]
+tmp1 <- tmp1[, .(value = list(value)),
+             by = .(L1)]
 tmp1 <- tmp1[order(tmp1$L1),]
 seq$.Proteins2 <- lapply(rws, c)
 w <- which(rws %in% tmp1$L1)
@@ -225,8 +226,10 @@ rownames(prot) <- stringi::stri_join("Pr_", prot$Prot.id)
 tmp1 <- seq$.Proteins
 tmp1 <- listMelt(tmp1, ColNames = c("Protein", "row"))
 tmp1$Prot.id <- prot$Prot.id[match(tmp1$Protein, prot$Protein)]
-tmp1 <- data.table::data.table(ProtID = tmp1$Prot.id, row = tmp1$row)
-tmp1 <- tmp1[, .(.Prot.ids = list(ProtID)), by = .(row = row)]
+tmp1 <- data.table::data.table(ProtID = tmp1$Prot.id,
+                               row = tmp1$row)
+tmp1 <- tmp1[, .(.Prot.ids = list(ProtID)),
+             by = .(row = row)]
 tmp1 <- as.data.frame(tmp1)
 tmp1 <- tmp1[order(tmp1$row),]
 rws <- 1L:nrow(seq)
@@ -257,7 +260,8 @@ prot$pep_to_P <- parallel::parSapply(parClust, tmp1, f0)
 # tmp1 <- listMelt(tmp1, ColNames = c("pep.id", "row"))
 # tmp1$.Prot.ids <- seq$.Prot.ids[match(tmp1$pep.id, seq$id)]
 # tmp1 <- listMelt(tmp1$.Prot.ids, tmp1$row, c("Prot.id", "row"))
-# tmp1 <- data.table::data.table(Prot.id = tmp1$Prot.id, row = tmp1$row)
+# tmp1 <- data.table::data.table(Prot.id = tmp1$Prot.id,
+#                                row = tmp1$row)
 # tmp1 <- tmp1[, .(.Prot.ids = sort(unique((Prot.id)))), by = .(row = row)]
 # tmp1 <- as.data.frame(tmp1)
 # tmp1 <- tmp1[order(tmp1$row),]
@@ -336,8 +340,10 @@ a <- setNames(prot$Contains[w], prot$Prot.id[w])
 a <- a[lengths(a) > 0L]
 if (length(a)) {
   temp <- listMelt(a)
-  temp <- data.table::data.table(value = temp$value, L1 = temp$L1)
-  temp <- temp[, .(byWhom = list(L1)), by = .(Contained = value)]
+  temp <- data.table::data.table(value = temp$value,
+                                 L1 = temp$L1)
+  temp <- temp[, .(byWhom = list(L1)),
+               by = .(Contained = value)]
   temp <- as.data.frame(temp)
   contained$.byWhom <- temp$byWhom[match(contained$Contained, temp$Contained)]
   ## Container peptide IDs:
@@ -460,8 +466,10 @@ if (CustPG) {
 }
 # Assign temporary PG IDs to seq
 temp <- listMelt(pg$.pep.ids, pg$temp.pg.id, c("pep.id", "temp.pg.id"))
-temp <- data.table::data.table(pep.id = temp$pep.id, temp.pg.id = temp$temp.pg.id)
-temp <- temp[, .(temp.pg.ids = paste(temp.pg.id, collapse = ";")), by = .(pep.id = pep.id)] 
+temp <- data.table::data.table(pep.id = temp$pep.id,
+                               temp.pg.id = temp$temp.pg.id)
+temp <- temp[, .(temp.pg.ids = paste(temp.pg.id, collapse = ";")),
+             by = .(pep.id = pep.id)] 
 temp <- as.data.frame(temp)
 seq$temp.pg.ids <- temp$temp.pg.ids[match(seq$id, temp$pep.id)]
 seq$.temp.pg.ids <- strsplit(seq$temp.pg.ids, ";")
@@ -495,16 +503,20 @@ pg$Removable <- parallel::parSapply(parClust, tmp1, f0)
 # Calculate individual and global PEPs - useful for later
 cat(" - Calculating individual and global protein group PEPs (Posterior Error Probabilities).\n")
 temp <- listMelt(strsplit(seq$Proteins, ";"), seq$PEP)
-temp <- data.table::data.table(value = temp$value, L1 = temp$L1)
-temp <- temp[, .(x = prod(L1)), by = .(Group.1 = value)] 
+temp <- data.table::data.table(value = temp$value,
+                               L1 = temp$L1)
+temp <- temp[, .(x = prod(L1)),
+             by = .(Group.1 = value)] 
 temp <- as.data.frame(temp)
 prot$PEP <- NA_real_
 w <- which(prot$Protein %in% temp$Group.1)
 prot$PEP[w] <- temp$x[match(prot$Protein[w], temp$Group.1)]
 if (CustPG) {
   temp <- listMelt(strsplit(seq2$Proteins, ";"), seq2$PEP)
-  temp <- data.table::data.table(value = temp$value, L1 = temp$L1)
-  temp <- temp[, .(x = prod(L1)), by = .(Group.1 = value)] 
+  temp <- data.table::data.table(value = temp$value,
+                                 L1 = temp$L1)
+  temp <- temp[, .(x = prod(L1)),
+               by = .(Group.1 = value)] 
   temp <- as.data.frame(temp)
   w <- which(prot$Protein %in% temp$Group.1)
   prot$PEP[w] <- temp$x[match(prot$Protein[w], temp$Group.1)]
@@ -1071,8 +1083,9 @@ f0 <- \(x) { #x <- tmp2[1L]
     if (length(ca) == 1L) { res2 <- c(res2, paste(res[[ca]], collapse = ";")) }
     if (length(cb) == 1L) {
       #y <- aggregate(res[[cb]], list(res[[cb]]), length)
-      y <- data.table(a = res[[cb]])
-      y <- y[, .(x = length(a)), by = .(Group.1 = a)]
+      y <- data.table::data.table(a = res[[cb]])
+      y <- y[, .(x = length(a)),
+             by = .(Group.1 = a)]
       y <- as.data.frame(y)
       y <- y[order(y$x, decreasing = TRUE),]
       res2 <- c(res2, paste(y$Group.1, collapse = ";"))
@@ -1231,8 +1244,9 @@ if ("Common Name" %in% colnames(DB)) {
 if (!is.na(dbOrgCol)) {
   tmp <- listMelt(strsplit(pg$`Protein IDs`, ";"), ColNames = c("ID", "Row"))
   tmp$Org <- DB[match(tmp$ID, DB$`Protein ID`), dbOrgCol]
-  tmp <- as.data.table(tmp)
-  tmp <- tmp[, .(Org = paste(sort(unique(Org)), collapse = ";")), by = .(Row = Row)]
+  tmp <- data.table::as.data.table(tmp)
+  tmp <- tmp[, .(Org = paste(sort(unique(Org)), collapse = ";")),
+             by = .(Row = Row)]
   tmp <- as.data.frame(tmp)
   pgOrgCol %<o% c("Organism", "Organism(s)")[(sum(grepl(";", tmp$Org)) > 0L)+1L]
   pg[[pgOrgCol]] <- tmp$Org[match(1L:nrow(pg), tmp$Row)]

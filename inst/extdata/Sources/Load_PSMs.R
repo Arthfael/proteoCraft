@@ -114,8 +114,9 @@ MatMet_Search %<o% setNames(lapply(1L:l_inDirs, \(x) {
 # These will need to be updated later
 #cat(paste(unlist(MatMet_Search), collapse = "\n"), "\n")
 #  - Fastas
-fastas_map %<o% list(Original = setNames(lapply(searchOutputs, \(x) { x$Fastas }),
-                                         inDirs))
+fastas_map %<o% list(Original = setNames(lapply(searchOutputs, \(x) {
+  x$Fastas
+}), inDirs))
 orig_fastas <- fastas <- unique(unlist(fastas_map))
 w <- which(!file.exists(fastas))
 if (length(w)) {

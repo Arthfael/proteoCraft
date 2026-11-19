@@ -314,7 +314,7 @@ if (exists("PTMstats") && nrow(PTMstats)) {
       }
       pep2prot[, kolPG] <- prtQuntDat[, kolPG]
       requireNamespace("data.table")
-      pep2prot <- data.table(pep2prot[, c("row", kolPG)])
+      pep2prot <- data.table::data.table(pep2prot[, c("row", kolPG)])
       pep2prot <- pep2prot[, lapply(.SD, mean, na.rm = TRUE), by = row, .SDcols = kolPG]
       pep2prot <- as.data.frame(pep2prot)
       # maximum PG fold change should not be too high in most experiments

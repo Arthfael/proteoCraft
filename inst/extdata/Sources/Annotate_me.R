@@ -42,9 +42,10 @@ if (globalGO) {
   tst2 <- unlist(strsplit(temp$GO, ";"))
   tst2a <- gsub(".*\\[|\\]$", "", tst2)
   # Test that...
-  tst3 <- data.table(ID = tst1, Name = tst2)
+  tst3 <- data.table::data.table(ID = tst1, Name = tst2)
   # - ... each ID has a single name, and that names are unique
-  tst3a <- tst3[, .(Name = list(unique(Name))), by = .(ID = ID)]
+  tst3a <- tst3[, .(Name = list(unique(Name))),
+                by = .(ID = ID)]
   tst3a <- as.data.frame(tst3a)
   tst3a$N_names <- lengths(tst3a$Name)
   # - ... each name is unique to one ID
@@ -59,7 +60,7 @@ if (globalGO) {
   #
   # Below commented data.table aggregation code... which is slower so not used.
   #
-  # temp2 <- as.data.table(temp[, c("id", kol2)])
+  # temp2 <- data.table::as.data.table(temp[, c("id", kol2)])
   # temp2 <- temp2[, lapply(.SD, f0), by = .(Group.1 = id), .SDcols = kol2]
   # temp2 <- as.data.frame(temp2)
   #
@@ -70,8 +71,9 @@ if (globalGO) {
   }
   tst1 <- unlist(strsplit(temp$`GO-ID`, ";"))
   tst2 <- unlist(strsplit(temp$GO, ";"))
-  tst3 <- data.table(ID = tst1, Name = tst2)
-  tst3 <- tst3[, .(Name = list(unique(Name))), by = .(ID = ID)]
+  tst3 <- data.table::data.table(ID = tst1, Name = tst2)
+  tst3 <- tst3[, .(Name = list(unique(Name))),
+               by = .(ID = ID)]
   tst3 <- as.data.frame(tst3)
   tst3b$N_IDs <- lengths(tst3b$ID)
   stopifnot(max(tst3b$N_IDs) == 1L)

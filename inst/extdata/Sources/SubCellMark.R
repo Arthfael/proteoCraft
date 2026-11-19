@@ -72,7 +72,7 @@ if (Annotate) {
     tst <- tst[tst$Accession %in% names(SubCellMark),]
     tst$Comp <- SubCellMark[match(tst$Accession, names(SubCellMark))]
     requireNamespace("data.table")
-    tst <- as.data.table(tst)
+    tst <- data.table::as.data.table(tst)
     tst <- tst[, .(Comp = list(unique(Comp))), by = .(Row = as.integer(Row))]
     tst <- as.data.frame(tst)
     tst$L <- lengths(tst$Comp)
