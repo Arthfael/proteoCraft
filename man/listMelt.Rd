@@ -4,7 +4,7 @@
 \alias{listMelt}
 \title{listMelt}
 \usage{
-listMelt(List, Names, ColNames = c("value", "L1"))
+listMelt(List, Names, ColNames = c("value", "L1"), asDT = FALSE)
 }
 \arguments{
 \item{List}{A list.}
@@ -12,13 +12,15 @@ listMelt(List, Names, ColNames = c("value", "L1"))
 \item{Names}{Names to apply to each element, if missing. Can be convenient in case you want to preserve Name's original non-character data type (e.g. numeric).}
 
 \item{ColNames}{Column names of the output data frame. Default = c("value", "L1"); note the reverse order compared with classic melt!}
+
+\item{asDT}{Return a data.table? Logical, default = FALSE}
 }
 \value{
-A data.frame with two columns. The default column names are "value" and "L1" as in classic melt(). The column order is inverted, i.e. "value" then "L1" - a stupid oversight, unfortunately changing this would be difficult now.
+A data.frame - or data.table is asDT = TRUE - with two columns. The default column names are "value" and "L1" as in classic melt(). The column order is inverted, i.e. "value" then "L1" - a stupid oversight, unfortunately changing this would be difficult now.
 }
 \description{
 Wrapper function for utils::stack(), allowing much faster and efficient melting of simple lists, i.e. lists where each element is a 1-dimension vector.\cr
-This won't work on more complex lists. Or at least it will work, but unlike reshape::melt it will only an L1 column, with the names of the 1st (top) level list.\cr
+This won't work on more complex lists. Or at least it will work, but unlike reshape::melt it will only output an L1 column, with the names of the 1st (top) level list.\cr
 Should be fairly easy to turn into a full melt function by recursive calls to itself if the input is a list of lists.\cr
 }
 \details{

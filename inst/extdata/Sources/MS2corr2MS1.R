@@ -40,10 +40,10 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
     for (grp in Grps) { #grp <- Grps[1L]
       grpMtch <- match(grp, Grps)
       w <- which(GrpsVct == grp)
-      tmp <- listMelt(strsplit(ev[w, ms2Kol], ";"), w, c("Intensity", "Which"))
+      tmp <- listMelt(strsplit(ev[w, ms2Kol], ";"), w, c("Intensity", "Which"), TRUE)
       tmp$Intensity <- as.numeric(tmp$Intensity)
-      tmp <- data.table::as.data.table(tmp)
-      tmp2 <- tmp[, .(MS2 = list(Intensity)), by = .(Which = Which)]
+      tmp2 <- tmp[, .(MS2 = list(Intensity)),
+                  by = .(Which = Which)]
       tmp2 <- tmp2$MS2[match(w, tmp2$Which)]
       MS2Tbl <- data.table::data.table(IDs = ev$id[w],
                                        MS1 = ev[w, ref],
@@ -152,8 +152,8 @@ if ((LabelType == "LFQ") && sum(isDIA) && length(ms2Kol)) { # We only run if we 
         tst0 <- data.table::data.table(Samples_group = tst$Samples_group, Sample = tst$Sample_name,
                                        ModSeq = tst$ModSeq, Charge = tst$Z,
                                        Original = tst$OrigVal, Corrected = tst$CorrVal2)
-        tst1 <- dcast(tst0, ModSeq+Charge~Sample, value.var = "Original", fun.aggregate = sum)
-        tst2 <- dcast(tst0, ModSeq+Charge~Sample, value.var = "Corrected",  fun.aggregate = sum)
+        tst1 <- data.table::dcast(tst0, ModSeq+Charge~Sample, value.var = "Original", fun.aggregate = sum)
+        tst2 <- data.table::dcast(tst0, ModSeq+Charge~Sample, value.var = "Corrected",  fun.aggregate = sum)
         tst1 <- as.data.frame(tst1)
         tst2 <- as.data.frame(tst2)
         Smpls <- unique(tst0$Sample)

@@ -7,12 +7,15 @@
 .summaryWrkr1(x, raw, type)
 }
 \arguments{
-\item{x}{File.}
+\item{x}{File index (a row of the table which is passed to the "raw" argument).}
 
-\item{raw}{Table of MS raw files.}
+\item{raw}{Table of MS raw files. Must contain a column named "Path" comtaining a absolute raw file paths.}
 
-\item{type}{Type of chromatogram to export.}
+\item{type}{Type of chromatogram to export. Can be "tic" or "bpc" (MS1-level), or, for Bruker files, "pasef_tic" (also just "pasef") or "pasef_bpc".}
 }
 \description{
-Worker function used by MQ_summary().
+Worker function used by MQ.summary() to extract a raw file's TIC or BPC.\cr
+Can now process:\cr
+ - Thermo .raw files\cr
+ - Bruker .d folders
 }

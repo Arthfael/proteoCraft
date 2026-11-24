@@ -131,25 +131,21 @@ if (LabelType == "Isobaric") {
 # Plot of contamination levels per sample
 dir <- paste0(wd, "/Summary plots")
 if (!dir.exists(dir)) { dir.create(dir, recursive = TRUE) }
-tmp2 <- listMelt(strsplit(tmp$Proteins, ";"), 1L:nrow(tmp), c("Protein", "Row"))
-m <- match(tmp2$Protein, db$`Protein ID`)
+tmp2 <- listMelt(strsplit(tmp$Proteins, ";"), 1L:nrow(tmp), c("Protein", "row"), TRUE)
+m <- match(sub("^CON__", "", tmp2$Protein), sub("^CON__", "", db$`Protein ID`))
 w <- which(!is.na(m))
 tmp2 <- tmp2[w,]; m <- m[w]
 # For our purpose here we must match contaminant proteins.
-tmp2$Cont <- db$`Potential contaminant`[m]
-if (tstOrg) {
-  tmp2$Organism <- db[m, dbOrgKol]
-  tmp2 <- data.table::as.data.table(tmp2)
-  f0 <- \(x) { c("Target", "Contaminant")[("Contaminant" %in% x)+1L] }
-  tmp2 <- tmp2[, .(x = f0(Organism)), by = .(Group.1 = Row)]
-  tmp2 <- as.data.frame(tmp2)
-} else {
-  tmp2 <- data.table::as.data.table(tmp2)
-  f0 <- \(x) { c("Target", "Contaminant")[("+" %in% x)+1L] }
-  tmp2 <- tmp2[, .(x = f0(Cont)), by = .(Group.1 = Row)]
-  tmp2 <- as.data.frame(tmp2)
+kol <- "Potential contaminant"
+if (tstOrg) { kol <- dbOrgKol }
+tmp2$Cont <- db[m, kol]
+val <- c("+", "Contaminant")[tstOrg + 1L]
+f0 <- \(x, filt = val) {
+  c("Target", "Contaminant")[(filt %in% x) + 1L]
 }
-tmp$Organism <- tmp2$x[match(1L:nrow(tmp), tmp2$Group.1)]
+tmp2 <- tmp2[, .(isCont = f0(Cont)),
+             by = .(row = row)]
+tmp$Organism <- tmp2$isCont[match(1L:nrow(tmp), tmp2$row)]
 tmp <- tmp[!is.na(tmp$Organism),]
 tmp$Organism <- factor(tmp$Organism, levels = c("Contaminant", "Target"))
 tmp$Intensity <- as.numeric(tmp$Intensity)

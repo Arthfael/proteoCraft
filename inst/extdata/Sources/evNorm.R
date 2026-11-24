@@ -270,8 +270,8 @@ if (Param$Norma.Ev.Intens) {
           cat("     ...", IsobarLab, " sample ", i, "...\n")
           wi <- which(tmpEv$Isobaric.set == i)
           #View(tmpEv[wi, k0])
-          tmp <- data.table::as.data.table(tmpEv[wi,
-                                                 c("Unique State", "Fraction", k0)])
+          tmp <- data.table::setDT(tmpEv[wi,
+                                         c("Unique State", "Fraction", k0)])
           tmp <- tmp[, lapply(.SD, sum, na.rm = TRUE),
                      keyby = .(`Unique State` = `Unique State`,
                                Fraction = Fraction)]
@@ -445,7 +445,7 @@ if (LabelType == "Isobaric") {
   er1 <- ev.ref["Adjusted"]
   a0 <- paste0(er0, get(IsobarLab))
   a1 <- paste0(er1, get(IsobarLab))
-  test <- data.table::as.data.table(ev[, c("MQ.Exp", a0, a1)])
+  test <- data.table::setDT(ev[, c("MQ.Exp", a0, a1)])
   test <- data.table::melt(test, id.vars = "MQ.Exp")
   test <- as.data.frame(test)
   test$Norm <- NA_character_

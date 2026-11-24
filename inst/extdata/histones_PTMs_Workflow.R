@@ -480,7 +480,7 @@ if (lw) {
 # When combining different searches, we want to make sure the same spectrum is not assigned
 # different peptidoforms.
 # Note: this can only work in DDA mode!
-# tmp <- data.table::as.data.table(ev[, c("Scan_ID_MZ", "Modified sequence_verbose")])
+# tmp <- data.table::setDT(ev[, c("Scan_ID_MZ", "Modified sequence_verbose")])
 # tmp <- tmp[, .(ModSeq = list(`Modified sequence_verbose`)), by = .(Scan_ID_MZ = Scan_ID_MZ)]
 # tmp <- as.data.frame(tmp)
 # tmp$L <- lengths(tmp$ModSeq)
@@ -494,7 +494,7 @@ if (lw) {
 #   wClear <- which(!ev$Scan_ID_MZ %in% Ambig$Scan_ID_MZ)
 #   kol <- c("Scan_ID", "Modified sequence_verbose", "Theoretical m/z", "m/z", "Score", "PEP")
 #   stopifnot(sum(!kol %in% colnames(ev)) == 0L)
-#   tmp2 <- data.table::as.data.table(ev[wAmbig, kol])
+#   tmp2 <- data.table::setDT(ev[wAmbig, kol])
 #   tmp2 <- tmp2[, .(Score = list(Score),
 #                    PEP = list(PEP),
 #                    `m/z` = list(`m/z`),
@@ -887,9 +887,8 @@ if (useExtTbl) {
 }
 
 tmp <- strsplit(ev$Proteins, ";")
-tmp <- listMelt(tmp, 1L:nrow(ev), c("ID", "row"))
+tmp <- listMelt(tmp, 1L:nrow(ev), c("ID", "row"), TRUE)
 tmp <- tmp[tmp$ID %in% histDB$`Protein ID`,]
-tmp <- data.table::as.data.table(tmp)
 tmp <- tmp[, .(IDs = list(ID)), by = .(row = row)]
 tmp <- as.data.frame(tmp)
 tmp$IDs <- parallel::parSapply(parClust, tmp$IDs, paste, collapse = ";")
@@ -926,7 +925,7 @@ if (sum(!c(kol1, kol2) %in% colnames(ev))) {
   stop("Some columns necessary for going further with this workflow are missing...")
 }
 # We will allow summing if several raw files are assigned the same Experiment
-evSum <- data.table::as.data.table(ev[, c(kol1, kol2)])
+evSum <- data.table::setDT(ev[, c(kol1, kol2)])
 evSum <- evSum[,
                .(Intensity = sum(Intensity, na.rm = TRUE),
                  Charge = paste(Charge, collapse = ";"),
@@ -935,7 +934,7 @@ evSum <- evSum[,
                       #`Raw file path` = `Raw file path`,
                       Experiment = Experiment)]
 if ("Score" %in% colnames(ev)) {
-  tmp <- data.table::as.data.table(ev[, c(kol1, "Score")])
+  tmp <- data.table::setDT(ev[, c(kol1, "Score")])
   tmp <- tmp[,
              .(Score = max(Score, na.rm = TRUE)),
              by = .(`Modified sequence` = `Modified sequence`,
@@ -1718,9 +1717,7 @@ quntCol <- paste0(intRoot[intType], allSamples) # Update
 Sites[, quntCol] <- pep[match(Sites$pepID, pep$id), quntCol]
 Sites2 <- Sites
 Sites2$pepID <- NULL
-Sites2 <- data.table::as.data.table(Sites2)
-Sites2 <- Sites2[, lapply(.SD, sum, na.rm = TRUE), keyby = Site]
-Sites2 <- data.table::as.data.table(Sites2)
+Sites2 <- data.table::setDT(Sites2)
 Sites2 <- Sites2[, lapply(.SD, sum, na.rm = TRUE), keyby = Site] # NB: converts all NAs to 0... equivalent but we had NAs, I will re-introduce them
 Sites2 <- as.data.frame(Sites2)
 w <- which(as.matrix(Sites2[, quntCol]) == 0, arr.ind = TRUE)

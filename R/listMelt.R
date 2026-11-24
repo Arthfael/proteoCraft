@@ -2,18 +2,19 @@
 #'
 #' @description 
 #' Wrapper function for utils::stack(), allowing much faster and efficient melting of simple lists, i.e. lists where each element is a 1-dimension vector.\cr
-#' This won't work on more complex lists. Or at least it will work, but unlike reshape::melt it will only an L1 column, with the names of the 1st (top) level list.\cr
+#' This won't work on more complex lists. Or at least it will work, but unlike reshape::melt it will only output an L1 column, with the names of the 1st (top) level list.\cr
 #' Should be fairly easy to turn into a full melt function by recursive calls to itself if the input is a list of lists.\cr
 #' 
 #' @param List A list.
 #' @param Names Names to apply to each element, if missing. Can be convenient in case you want to preserve Name's original non-character data type (e.g. numeric).
 #' @param ColNames Column names of the output data frame. Default = c("value", "L1"); note the reverse order compared with classic melt!
+#' @param asDT Return a data.table? Logical, default = FALSE
 #' 
 #' @details
 #' This function allows much faster melting than reshape::melt.list(). However, it may only be used on "simple" lists, that is, lists where each element is a vector.
 #' 
 #' @returns
-#' A data.frame with two columns. The default column names are "value" and "L1" as in classic melt(). The column order is inverted, i.e. "value" then "L1" - a stupid oversight, unfortunately changing this would be difficult now.
+#' A data.frame - or data.table is asDT = TRUE - with two columns. The default column names are "value" and "L1" as in classic melt(). The column order is inverted, i.e. "value" then "L1" - a stupid oversight, unfortunately changing this would be difficult now.
 #' 
 #' @examples
 #' temp <- listMelt(strsplit(PG$"Protein IDs", ";"), PG$id, c("Protein accession", "PG id"))
@@ -22,11 +23,13 @@
 
 listMelt <- function(List,
                      Names,
-                     ColNames = c("value", "L1")) {
+                     ColNames = c("value", "L1"),
+                     asDT = FALSE) {
   #List <- prjcts
   toInt <- FALSE
   stopifnot(is.atomic(List) | inherits(List, "list"),
-            length(ColNames) == 2L)
+            length(ColNames) == 2L,
+            is.logical(asDT), length(asDT) == 1L)
   lL <- length(List)
   w <- which(lengths(List) > 0L) # Filter necessary not only to avoid warning for empty elements ("In stack.default(List) : non-vector elements will be ignored")
   # But also a bug which would cause improper names assignment if the list contains empty elements!!!
@@ -54,5 +57,6 @@ listMelt <- function(List,
   List[[ColNames[2L]]] <- Names[List$ind]
   if (toInt) { List[[ColNames[2L]]] <- as.integer(List[[ColNames[2L]]]) }
   List$ind <- NULL
+  if (asDT) { data.table::setDT(List) } # No assignment needed since setDT() converts in place!
   return(List)
 }

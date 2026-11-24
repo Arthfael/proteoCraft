@@ -1,7 +1,7 @@
 #' .summaryWrkr2
 #' 
 #' @description
-#' Worker function used by MQ_summary().
+#' Worker function used by MQ.summary().
 #'
 #' @param x Raw file
 #' @param tempDat Temp data.

@@ -393,7 +393,7 @@ if (getInt) {
 for (nm in names(allChroms)) { #nm <- names(allChroms)[1L]
   allChroms[[nm]] <- plyr::rbind.fill(allChroms[[nm]])
   if (nm == "Pressure") {
-    tmp <- data.table::as.data.table(allChroms[[nm]])
+    tmp <- data.table::setDT(allChroms[[nm]])
     tmp$Bin <- round(as.numeric(tmp$`Retention time`, 1))
     tmp <- tmp[, .(Pressure = mean(Pressure)),
                by = .(`Raw file` = `Raw file`,

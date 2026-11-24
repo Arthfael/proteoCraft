@@ -13,7 +13,12 @@
 #' @param N.clust A limit on the number of vCPUs to use. If left as NULL (default), uses the number of available clusters - 1, to a minimum of 1.
 #' @param N.reserved Default = 1. Number of reserved vCPUs the function is not to use. Note that for obvious reasons it will always use at least one.
 #' @param cl Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!
-#' @param OpenSearch Is it an open search? If TRUE, will also ignore Open Search-type columns even if they are present. If TRUE, will try to detect and process them - but this is probably still a bit buggy.
+#' @param OpenSearch Is it an open search? If TRUE, will also ignore Open Search-type columns even if they are present. If TRUE, will try to detect and process them - but this is probably still a bit buggy.\cr
+#' Currently, we indicate any open search shift with a (!!) at the end of the sequence. The predicted PTM(s) is (are) indicated in more details in the ..._verbose and Modifications columns, but even then should be validated with a targeted search.\cr
+#' There is also code for generating 2-character PTM marks for Open Search, but these are not used because Open Search shifts can only rarely be assigned a definite localization:\cr
+#'  - even single shifts are not assigned an unambiguous position in most cases,
+#'  - multiple mass shifts on a same peptide are treated as one global shift for the purpose of localization\cr
+#' Instead, the "MSFragger Localization" column, if present, is provided as is but renamed "Open Search localization".\cr
 #' 
 #' @returns
 #' A list of (at least) 4 items:\cr
@@ -612,7 +617,7 @@ FP_to_MQ <- function(FP_Workflow,
     }, 1)
     tmp2[, c("UniMod", massKol)] <- tmp3[match(tmp2$value, tmp3$value),
                                          c("UniMod", massKol)]
-    tmp2 <- data.table::as.data.table(tmp2)
+    data.table::setDT(tmp2)
     massFun <- \(x) {
       if (!is.na(x[1L])) { return(x[1L]) }
       return(x[2L])
@@ -704,7 +709,7 @@ FP_to_MQ <- function(FP_Workflow,
       if (length(w2)) { tmp1$Mark_opt2[w2] <- as.character(round(tmp1$`Mass delta`[w2])) }
       wNR <- w[!vapply(w, \(i) {
         if (i == 1L) { return(TRUE) }
-        tmp1$Mark_opt2[i] %in% c(allPTMs$Mark, tmp1$Mark[1L:(i-1L)], tmp1$Mark_opt2[1L:(i-1L)], "!m")
+        tmp1$Mark_opt2[i] %in% c(allPTMs$Mark, tmp1$Mark[1L:(i-1L)], tmp1$Mark_opt2[1L:(i-1L)], "!m", "!!")
       }, TRUE)]
       tmp1$Mark[wNR] <- tmp1$Mark_opt2[wNR]
     }
@@ -715,7 +720,7 @@ FP_to_MQ <- function(FP_Workflow,
       tmp1$Mark_opt1[w] <- tolower(substr(tmp1$`Full name`[w], 1L, 2L))
       wNR <- w[!vapply(w, \(i) {
         if (i == 1L) { return(TRUE) }
-        tmp1$Mark_opt1[i] %in% c(allPTMs$Mark, tmp1$Mark[1L:(i-1L)], tmp1$Mark_opt1[1L:(i-1L)], "!m")
+        tmp1$Mark_opt1[i] %in% c(allPTMs$Mark, tmp1$Mark[1L:(i-1L)], tmp1$Mark_opt1[1L:(i-1L)], "!m", "!!")
       }, TRUE)]
       tmp1$Mark[wNR] <- tmp1$Mark_opt1[wNR]
     }
@@ -723,7 +728,7 @@ FP_to_MQ <- function(FP_Workflow,
     w <- which(tmp1$Mark == "")
     if (length(w)) {
       markOpt2 <- do.call(paste, c(as.data.frame(gtools::permutations(length(markOpt), 2L, markOpt)), sep = ""))
-      markOpt2 <- base::setdiff(markOpt2, c(allPTMs$Mark, tmp1$Mark, "!m"))
+      markOpt2 <- base::setdiff(markOpt2, c(allPTMs$Mark, tmp1$Mark, "!m", "!!"))
       tmp1$Mark[w] <- markOpt2[1L:length(w)]
     }
     # - Generic marks for the rest... this will need a fix
@@ -778,7 +783,7 @@ FP_to_MQ <- function(FP_Workflow,
                     sub("^[a-z]{2}\\|", "", tmp$prot))
   }
   tmp <- tmp[order(tmp$row, tmp$prot),]
-  tmp <- data.table::as.data.table(tmp)
+  data.table::setDT(tmp)
   tmp <- tmp[, .(prot2 = list(unique(prot))),
              by = .(row = row, prot = prot)]
   tmp <- tmp[, .(prots = paste(prot2, collapse = ";")),
@@ -922,7 +927,8 @@ FP_to_MQ <- function(FP_Workflow,
   EV$"Modifications"[wMod] <- tmpJust$Mods[m]
   #View(EV[wMod, c("Sequence", "Modified sequence", "Modified sequence_verbose", "Modifications")])
   if (OpenSearch) {
-    EV$`Modified sequence`[wMod2] <- sub("_$", "(!m)_", EV$`Modified sequence`[wMod2])
+    EV$`Modified sequence`[wMod2] <- sub("_$", "(!!)_", EV$`Modified sequence`[wMod2]) # This indicates any open search shift
+    # These are detailed in the _verbose and Modifications column
     tmpVerb <- data.table::as.data.table(row2orig)
     tmpVerb <- tmpVerb[, .(n = .N),
                        by = .(row = row, Mods = Name)]
@@ -938,6 +944,9 @@ FP_to_MQ <- function(FP_Workflow,
                       B = paste0("(", tmpVerb$Mods[match(wMod2, tmpVerb$row)], ")_"))
     EV$`Modified sequence_verbose`[wMod2] <- do.call(paste, c(tmp, sep = ""))
     EV$Modifications[wMod2] <- sub("^,", "", paste0(EV$Modifications[wMod2], ",open search: ", tmp$B))
+    if ("MSFragger Localization" %in% colnames(PSMs)) {
+      EV$"Open Search localization" <- PSMs$"MSFragger Localization"
+    }
   }
   #
   #tst <- unique(sub("^[0-9]+ ", "", unlist(strsplit(EV$Modifications[wMdSq2], ","))))

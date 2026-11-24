@@ -799,8 +799,9 @@ for (i in 1L:nrow(fastasTbl)) { if (!file.exists(paste0(wd, "/", fastasTbl$Name[
 if (scrptType == "noReps") { AnalysisParam$fastasTbl <- list(fastasTbl$Full) }
 
 # Filter for repeats, mark as contaminants
-tmp <- data.table::as.data.table(db[, c("Potential contaminant", "Protein ID")])
-tst <- tmp[, .(x = c(`Potential contaminant`)), by = .(Group.1 = `Protein ID`)]
+tmp <- data.table::setDT(db[, c("Potential contaminant", "Protein ID")])
+tst <- tmp[, .(x = c(`Potential contaminant`)),
+           by = .(Group.1 = `Protein ID`)]
 tst <- as.data.frame(tst)
 u <- tst$Group.1
 tst$L <- lengths(tst$x)

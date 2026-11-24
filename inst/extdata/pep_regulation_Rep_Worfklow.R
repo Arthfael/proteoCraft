@@ -572,9 +572,9 @@ w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
 if (length(w)) {
   rg <- 1L:nrow(ev)
   for (i in w) {
-    tmp <- listMelt(ev[[i]]) #tmp <- listMelt(strsplit(ev$Proteins, ";"))
-    tmp <- data.table::as.data.table(tmp)
-    tmp <- tmp[, .(x = paste(value, collapse = ";")), by = .(row = L1)]
+    tmp <- listMelt(ev[[i]], asDT = TRUE) #tmp <- listMelt(strsplit(ev$Proteins, ";"))
+    tmp <- tmp[, .(x = paste(value, collapse = ";")),
+               by = .(row = L1)]
     ev[[i]] <- tmp$x[match(rg, tmp$row)]
     #tst <- tmp$x[match(rg, tmp$row)]; identical(ev$Proteins, tst)
   }

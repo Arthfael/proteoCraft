@@ -1,10 +1,13 @@
 if (Annotate) {
-  
+  #
   # If scrptTypeFull == "custom", you must have created the following variables:
   # - myData = the data to be annotation, which must have a "GO-ID" column!
   # - myCol = the column with protein IDs in myData
   # - useProloc = logical, use pRoloc markers automatically or an alternative solution?
   # before running this source...
+  # If useProloc is FALSE, you may also define:
+  # - custom_Compartments: named vector of GO-IDs for compartments to add to CompGOTerms
+  # - remove_Compartments: names of compartments to remove from CompGOTerms
   #
   if (scrptTypeFull == "withReps_PTMs_only") {
     myData <- PG
@@ -21,6 +24,20 @@ if (Annotate) {
                               "GO:0005783", "GO:0005794", "GO:0031988", "GO:0005739", "GO:0009536", "GO:0005886"),
                             c("Nucleus", "Nucleoplasm", "Chromatin", "Nucleolus", "Nuclear envelope", "Cytoplasm", "Cytosol",
                               "ER", "Golgi", "Vesicle", "Mitochondrion", "Plastid", "Plasma membrane"))
+  #
+  #
+  # Framework for manipulating CompGOTerms when using the source:
+  # #############################################################
+  # This will only work if useProloc is set to FALSE
+  if (exists("custom_Compartments")) {
+    CompGOTerms[names(custom_Compartments)] <- custom_Compartments
+  }
+  if (exists("remove_Compartments")) {
+    CompGOTerms <- CompGOTerms[base::setdiff(names(CompGOTerms), remove_Compartments)]
+  }
+  #
+  #
+  #
   if (scrptTypeFull != "custom") {
     tstSp <- if (exists("Org")
                  && is.data.frame(Org)
@@ -68,12 +85,12 @@ if (Annotate) {
   #
   # Annotate myData
   if (length(SubCellMark)) {
-    tst <- listMelt(strsplit(myData[[myCol]], ";"), ColNames = c("Accession", "Row"))
+    requireNamespace("data.table")
+    tst <- listMelt(strsplit(myData[[myCol]], ";"), ColNames = c("Accession", "Row"), asDT = TRUE)
     tst <- tst[tst$Accession %in% names(SubCellMark),]
     tst$Comp <- SubCellMark[match(tst$Accession, names(SubCellMark))]
-    requireNamespace("data.table")
-    tst <- data.table::as.data.table(tst)
-    tst <- tst[, .(Comp = list(unique(Comp))), by = .(Row = as.integer(Row))]
+    tst <- tst[, .(Comp = list(unique(Comp))),
+               by = .(Row = as.integer(Row))]
     tst <- as.data.frame(tst)
     tst$L <- lengths(tst$Comp)
     tst <- tst[tst$L == 1L,]

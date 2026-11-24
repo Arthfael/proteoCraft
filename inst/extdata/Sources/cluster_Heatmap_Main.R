@@ -626,7 +626,7 @@ if (clustHtMp) {
         addSCmarks <- FALSE
         if (("Compartment marker" %in% colnames(PG)) && (sum(PG$"Compartment marker" != ""))) {
           requireNamespace("data.table")
-          temp2m <- data.table::as.data.table(temp2[, c("Leading protein IDs", "Ymin", "Xmin")])
+          temp2m <- data.table::setDT(temp2[, c("Leading protein IDs", "Ymin", "Xmin")])
           temp2m <- temp2m[,
                            .(Xmin = min(Xmin, na.rm = TRUE),
                              Ymin = min(Ymin, na.rm = TRUE)),

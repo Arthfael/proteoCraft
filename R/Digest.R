@@ -253,7 +253,7 @@ Digest <- function(Seq,
           })), collapse = ";")
           # Collapsing seems actually more efficient here - the vectors end up shorter
         }, "")
-        temp <- data.table::as.data.table(temp)
+        data.table::setDT(temp)
         temp <- temp[, .(x = paste(value, collapse = ";")),
                      by = .(Group.1 = L1)]
         temp <- setNames(strsplit(temp$x, ";"), temp$Group.1)

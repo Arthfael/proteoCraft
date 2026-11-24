@@ -2,15 +2,9 @@
 #
 # Top-level source to control how we use the splitByOrg argument and the lower level PG_Assemble source.
 cat("Starting protein groups assembly...\n")
-if ("N. of peptidoforms for quantitation" %in% colnames(Param)) {
-  N_Pep <- as.integer(Param$"N. of peptidoforms for quantitation")
-  if (is.na(N_Pep) || (N_Pep <= 0L)) {
-    warning("Invalid `\"N. of peptidoforms for quantitation\" parameter, defaulting to 1!")
-    N_Pep <- 1L
-  }
-} else { N_Pep <- 1L }
-N_Pep %<o% N_Pep
-#
+if (!exists("N_Pep")) { # Defined in the parameter sources, but we need a default
+  N_Pep %<o% 1L
+}
 pgSrc <- paste0(libPath, "/extdata/Sources/PG_Assemble.R")
 #rstudioapi::documentOpen(pgSrc)
 if (!exists("splitByOrg")) { splitByOrg <- FALSE }
@@ -46,7 +40,7 @@ if (splitByOrg) {
   tmpPeps <- lapply(PG_assembly, \(x) { x$Peptides[, c("Modified sequence", kol)] })
   tmpPeps <- plyr::rbind.fill(tmpPeps)
   requireNamespace("data.table")
-  tmpPeps <- data.table::as.data.table(tmpPeps)
+  data.table::setDT(tmpPeps)
   for (k in kol) {
     if (is.character(tmpPeps[[k]])) { tmpPeps[[k]] <- strsplit(tmpPeps[[k]], ";") }
   }

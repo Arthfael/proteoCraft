@@ -272,8 +272,9 @@ if (length(w) == 2L) {
   for (i in genkol) { temp[[i]] <- strsplit(temp[[i]], ";") }
   temp <- apply(temp, 1L, \(x) { paste(sort(unique(unlist(x))), collapse = ";") })
 }
-temp2 <- data.table::as.data.table(listMelt(strsplit(ev$Proteins, ";"),
-                                            1L:nrow(ev)))
+temp2 <- listMelt(strsplit(ev$Proteins, ";"),
+                  1L:nrow(ev),
+                  asDT = TRUE)
 temp2$Gene <- temp[match(temp2$value, db$`Protein ID`)]
 temp2 <- temp2[, .(Genes = paste(Gene, collapse = ";")),
                keyby = .(id = L1)]
@@ -1823,27 +1824,21 @@ QC_plotLys[names(tmp$plotLy)] <- tmp$plotLy
 #
 # Plot of contamination levels per sample
 tmp <- ev[, c("Proteins", "Intensity", "Experiment")]
-tmp2 <- listMelt(strsplit(tmp$Proteins, ";"), 1L:nrow(tmp), c("Protein", "Row"))
+tmp2 <- listMelt(strsplit(tmp$Proteins, ";"), 1L:nrow(tmp), c("Protein", "row"), TRUE)
 m <- match(sub("^CON__", "", tmp2$Protein), sub("^CON__", "", db$`Protein ID`))
 w <- which(!is.na(m))
 tmp2 <- tmp2[w,]; m <- m[w]
 # For our purpose here we must match contaminant proteins.
-tmp2$Cont <- db$`Potential contaminant`[m]
-if (tstOrg) {
-  tmp2$Organism <- db[m, dbOrgKol]
-  tmp2 <- data.table::as.data.table(tmp2)
-  f0 <- \(x) { c("Target", "Contaminant")[("Contaminant" %in% x) + 1L] }
-  tmp2 <- tmp2[, .(x = f0(Organism)),
-               by = .(Group.1 = Row)]
-  tmp2 <- as.data.frame(tmp2)
-} else {
-  tmp2 <- data.table::as.data.table(tmp2)
-  f0 <- \(x) { c("Target", "Contaminant")[("+" %in% x) + 1L] }
-  tmp2 <- tmp2[, .(x = f0(Cont)),
-               by = .(Group.1 = Row)]
-  tmp2 <- as.data.frame(tmp2)
+kol <- "Potential contaminant"
+if (tstOrg) { kol <- dbOrgKol }
+tmp2$Cont <- db[m, kol]
+val <- c("+", "Contaminant")[tstOrg + 1L]
+f0 <- \(x, filt = val) {
+  c("Target", "Contaminant")[(filt %in% x) + 1L]
 }
-tmp$Organism <- tmp2$x[match(1L:nrow(tmp), tmp2$Group.1)]
+tmp2 <- tmp2[, .(isCont = f0(Cont)),
+             by = .(row = row)]
+tmp$Organism <- tmp2$isCont[match(1L:nrow(tmp), tmp2$row)]
 tmp <- tmp[!is.na(tmp$Organism),]
 tmp$Organism <- factor(tmp$Organism, levels = c("Contaminant", "Target"))
 tmp <- aggregate(tmp$Intensity, list(tmp$Experiment, tmp$Organism), sum)
@@ -2148,8 +2143,7 @@ w <- which(vapply(colnames(ev), \(x) { inherits(ev[[x]], "list") }, TRUE))
 if (length(w)) {
   rg <- 1L:nrow(ev)
   for (i in w) {
-    tmp <- listMelt(ev[[i]]) #tmp <- listMelt(strsplit(ev$Proteins, ";"))
-    tmp <- data.table::as.data.table(tmp)
+    tmp <- listMelt(ev[[i]], asDT = TRUE) #tmp <- listMelt(strsplit(ev$Proteins, ";"))
     tmp <- tmp[, .(x = paste(value, collapse = ";")),
                by = .(row = L1)]
     ev[[i]] <- tmp$x[match(rg, tmp$row)]

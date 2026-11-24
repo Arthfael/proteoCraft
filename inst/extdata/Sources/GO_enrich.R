@@ -423,8 +423,9 @@ if (NoOnt + NoOffspr) {
       # and without even using parallel!!!
       Offspr <- BiocGenerics::toTable(Offspr)
       colnames(Offspr) <- c("Offspring", "Parent")
-      Offspr <- data.table::as.data.table(Offspr)
-      Offspr <- Offspr[, .(Offspring = list(Offspring)), by = .(Parent = Parent)]
+      data.table::setDT(Offspr)
+      Offspr <- Offspr[, .(Offspring = list(Offspring)),
+                       by = .(Parent = Parent)]
       Offspr <- as.data.frame(Offspr)
       GO.terms$Offspring[w] <- Offspr$Offspring[match(GO.terms$ID[w], Offspr$Parent)]
     }
@@ -747,8 +748,9 @@ if (length(wFltL)) {
             Offspr <- get(paste0("GO", ont, "OFFSPRING"))
             Offspr <- BiocGenerics::toTable(Offspr)
             colnames(Offspr) <- c("Offspring", "Parent")
-            Offspr <- data.table::as.data.table(Offspr)
-            Offspr <- Offspr[, .(Offspring = list(Offspring)), by = .(Parent = Parent)]
+            data.table::setDT(Offspr)
+            Offspr <- Offspr[, .(Offspring = list(Offspring)),
+                             by = .(Parent = Parent)]
             Offspr <- as.data.frame(Offspr)
             tmpGO.terms$Offspring[wo] <- Offspr$Offspring[match(tmpGO.terms$ID[wo], Offspr$Parent)]
             tmpGO.terms$Term[wo] <- annotate::getGOTerm(tmpGO.terms$ID[wo])[[ont]]

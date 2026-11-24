@@ -154,9 +154,8 @@ SN_to_MQ <- function(SN_fls,
   if (length(w) || (!"FG.PrecMz" %in% colnames(SN))) {
     tmp <- strsplit(gsub("\\][^[]*\\[", "]><[", gsub("^_[^[]*\\[?|\\]?[^]]*_$", "", SN$EG.ModifiedSequence)), "\\]><\\[")
     uPTM <- unique(unlist(tmp))
-    ptmMatr <- listMelt(tmp, ColNames = c("PTM", "w"))
+    ptmMatr <- listMelt(tmp, ColNames = c("PTM", "w"), asDT = TRUE)
     ptmMatr$count <- 1L
-    ptmMatr <- data.table::as.data.table(ptmMatr)
     ptmMatr <- data.table::dcast(ptmMatr, w~PTM, sum)
     wPTMs <- ptmMatr$w
     ptmMatr <- as.data.frame(ptmMatr)
@@ -274,16 +273,19 @@ SN_to_MQ <- function(SN_fls,
     tmpLst$Verbose[wF] <- paste0("(", allPTMs$`Full name`[mF], ")")
   }
   # Important: create data.tables individually, or use data.table::copy()
-  tmp1 <- data.table::as.data.table(tmpLst[, c("modSeq", "wh")])
-  tmp2 <- data.table::as.data.table(tmpLst[, c("Verbose", "wh")])
+  tmp1 <- data.table::setDT(tmpLst[, c("modSeq", "wh")])
+  tmp2 <- data.table::setDT(tmpLst[, c("Verbose", "wh")])
   tmp3 <- tmpLst
   tmp3$Mods <- gsub("^\\(|\\)$", "", tmp3$Verbose)
   tmp3 <- tmp3[tmp3$Mods %in% allPTMs$"Full name", c("Mods", "wh")]
   tmp3$Mods <- allPTMs$Mark[match(tmp3$Mods, allPTMs$"Full name")]
-  tmp3 <- data.table::as.data.table(tmp3)
-  tmp1 <- tmp1[, .(modSeq = paste0(modSeq, collapse = "")), by = .(wh = wh)]
-  tmp2 <- tmp2[, .(Verbose = paste0(Verbose, collapse = "")), by = .(wh = wh)]
-  tmp3 <- tmp3[, .(n = .N), by = .(wh = wh, Mods = Mods)]
+  data.table::setDT(tmp3)
+  tmp1 <- tmp1[, .(modSeq = paste0(modSeq, collapse = "")),
+               by = .(wh = wh)]
+  tmp2 <- tmp2[, .(Verbose = paste0(Verbose, collapse = "")),
+               by = .(wh = wh)]
+  tmp3 <- tmp3[, .(n = .N),
+               by = .(wh = wh, Mods = Mods)]
   tmp3$n <- as.character(tmp3$n)
   tmp3$modTag <- tmp3$Mods
   w2p <- which(tmp3$n != "1")

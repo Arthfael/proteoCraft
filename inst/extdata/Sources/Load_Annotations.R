@@ -8,7 +8,8 @@ fastaLoc <- dfltLocs$Path[match("Fasta files", dfltLocs$Folder)]
 GO.col %<o% c("GO", "GO-ID")
 if (Annotate) {
   source(parSrc)
-  Parsed_annotations_lst <- lapply(1L:nrow(AnnotFlsTbl), \(i) { #i <- 1L
+  nr <- nrow(AnnotFlsTbl)
+  Parsed_annotations_lst <- lapply(1L:nr, \(i) { #i <- 1L
     fl <- AnnotFlsTbl$Path[i]
     tp <- AnnotFlsTbl$Type[i]
     # If the annotation file is not present locally, make a local copy
@@ -25,7 +26,29 @@ if (Annotate) {
     }
     return(x)
   })
-  Parsed_annotations <- plyr::rbind.fill(Parsed_annotations_lst)
+  # Important:
+  # In previous versions (before 4.4.1) there was a bug here, we simply pasted both databases.
+  # Since we then used match, we only got annotations from the from matching row.
+  # The new addition below ensures we now use all annotations aggregated from all sources!
+  if (nr == 1L) {
+    Parsed_annotations <- Parsed_annotations_lst[[1L]]
+  } else {
+    Parsed_annotations <- lapply(Parsed_annotations_lst, \(x) {
+      data.table::setDT(x)
+      kols <- base::setdiff(colnames(x), c("ID", "Accession"))
+      w <- which(vapply(kols, \(k) { is.character(x[[k]]) }, TRUE))
+      for (k in kols[w]) { x[[k]] <- strsplit(x[[k]], ";") }
+      return(x)
+    })
+    Parsed_annotations <- data.table::rbindlist(Parsed_annotations)
+    kols <- base::setdiff(colnames(Parsed_annotations), c("ID", "Accession"))
+    Parsed_annotations <- Parsed_annotations[order(Parsed_annotations$ID),] # May marginally speed up the next step...
+    Parsed_annotations <- Parsed_annotations[, lapply(.SD, \(x) { paste(unique(unlist(x)), collapse = ";") }),
+                                             by = .(ID = ID,
+                                                    Accession = Accession),
+                                             .SDcols = kols]
+    Parsed_annotations <- as.data.frame(Parsed_annotations)
+  }
 }
 Annotate %<o% (exists("Parsed_annotations") &&
                  is.data.frame(Parsed_annotations) &&
@@ -84,7 +107,7 @@ if (Annotate) {
     #tst3c$L <- lengths(tst3c$names)
     #max(tst3c$L) # Should be 1 now
     #
-    tst1 <- data.table::as.data.table(tst1)
+    data.table::setDT(tst1)
     tst1 <- tst1[, .(GO = paste(name, collapse = ";"),
                      ID = paste(ID, collapse = ";")),
                  by = .(row = tst1$row)]

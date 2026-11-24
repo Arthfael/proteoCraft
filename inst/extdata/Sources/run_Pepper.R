@@ -415,7 +415,7 @@ if (runPepper) {
   g <- grep(";", ev$Proteins, invert = TRUE)
   tmp <- ev[g, c("Modified sequence", "Proteins", "Experiment", ref, nuRef)]
   colnames(tmp) <- c("ModSeq", "Proteins", "Experiment", "Original", "Pepper")
-  tmp <- data.table::as.data.table(tmp)
+  data.table::setDT(tmp)
   obj <- setNames(c("Original", "Pepper"), c("Before", "After"))
   call <- paste0(vapply(Exp, \(x) { paste0(x, " = sd(", x, ")") }, ""), collapse = ", ") # start building our call
   for (i in 1L:2L) {
@@ -425,7 +425,7 @@ if (runPepper) {
     tmp2 <- as.data.frame(tmp2)
     w <- which(tmp2[, Exp] == 0, arr.ind = TRUE)
     tmp2[, Exp][w] <- NA
-    tmp2 <- data.table::as.data.table(tmp2)
+    data.table::setDT(tmp2)
     call2 <- paste0("tmp2 <- tmp2[, .(", call, "), by = .(Proteins = Proteins)]")
     eval(parse(text = call2), envir = .GlobalEnv)
     tmp2 <- as.data.frame(tmp2)

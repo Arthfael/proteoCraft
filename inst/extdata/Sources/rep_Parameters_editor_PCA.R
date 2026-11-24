@@ -48,22 +48,24 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
   tmp <- do.call(paste, c(data[, lsKl], sep = "---"))
   if (LabelType == "Isobaric") {
     kol2 <- sub(topattern(ev.ref["Original"]), "", kol)
-    data2 <- data.table::as.data.table(data[, kol])
+    data2 <- data.table::setDT(data[, kol])
     colnames(data2) <- kol2
     data2$Group <- tmp
     data2$MQ.Exp <- ev$MQ.Exp[w]
-    data2 <- data2[, lapply(.SD, sum, na.rm = TRUE), keyby = .(Group = Group,
-                                                               MQ.Exp = MQ.Exp)]
+    data2 <- data2[, lapply(.SD, sum, na.rm = TRUE),
+                   keyby = .(Group = Group,
+                             MQ.Exp = MQ.Exp)]
     colnames(data2) <- c("Group", "MQ.Exp", kol2)
     data2 <- as.data.frame(data2)
-    data2 <- melt(data2, id.vars = c("Group", "MQ.Exp"))
+    data2 <- dfMelt(data2, id.vars = c("Group", "MQ.Exp"))
     data2$value <- log10(data2$value)
     data2 <- data2[is.finite(data2$value),]
     data2$IsoBarLab <- Exp.map$`Isobaric label details`[match(as.integer(data2$variable), Exp.map$`Isobaric label`)]
     data2$Parent_sample <- do.call(paste, c(data2[, c("MQ.Exp", "IsoBarLab")], sep = "_"))
     data2 <- data2[data2$Parent_sample %in% Exp.map$`Parent sample`,]
-    data2 <- data.table::as.data.table(data2)
-    data2 <- dcast(data2[, c("Group", "value", "Parent_sample")], Group~Parent_sample)
+    data.table::setDT(data2)
+    data2 <- data.table::dcast(data2[, c("Group", "value", "Parent_sample")],
+                               Group~Parent_sample)
     data2 <- as.data.frame(data2)
     #data2[, lsKl] <- do.call(rbind, c(strsplit(data2$Group, "---")))
     #data2 <- data2[, which(!colnames(data2) %in% kol)]

@@ -14,5 +14,5 @@
 \item{size}{Type of chromatogram to export.}
 }
 \description{
-Worker function used by MQ_summary().
+Worker function used by MQ.summary().
 }

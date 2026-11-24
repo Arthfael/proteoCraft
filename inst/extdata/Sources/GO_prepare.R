@@ -35,8 +35,9 @@ if (Annotate) {
         # and without even using parallel!!!
         Offspr <- BiocGenerics::toTable(Offspr)
         colnames(Offspr) <- c("Offspring", "Parent")
-        Offspr <- data.table::as.data.table(Offspr)
-        Offspr <- Offspr[, .(Offspring = list(Offspring)), by = .(Parent = Parent)]
+        data.table::setDT(Offspr)
+        Offspr <- Offspr[, .(Offspring = list(Offspring)),
+                         by = .(Parent = Parent)]
         Offspr <- as.data.frame(Offspr)
         GO_terms$Offspring[wo] <- Offspr$Offspring[match(GO_terms$ID[wo], Offspr$Parent)]
       }

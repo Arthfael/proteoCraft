@@ -82,7 +82,7 @@ AdvNorm.IL <- function(df,
     #stopifnot(length(p) == length(nms))
     dat <- dat[, c(ids.col, nms)]
     dat[, nms] <- sweep(dat[, nms], 2L, p, "/")
-    dat2 <- data.table::as.data.table(dat)
+    dat2 <- data.table::setDT(dat)
     colnames(dat2)[colnames(dat2) == ids.col] <- "Group.1"
     # Aggregate (if necessary) by ID, using sum:
     dat2 <- dat2[, lapply(.SD, sum, na.rm = TRUE), by = Group.1, , .SDcols = nms]

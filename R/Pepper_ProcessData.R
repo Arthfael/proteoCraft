@@ -132,7 +132,7 @@ Pepper_ProcessData <- function(Ev,
   tempEv3 <- data.table::data.table(tempEv[, c(Ev_Sample.col, "UniqID", intCol)])
   colnames(tempEv3)[colnames(tempEv3) == Ev_Sample.col] <- "Sample"
   tempEv3 <- tempEv3[!is.na(tempEv3$Sample),]
-  tempEv3 <- dcast(tempEv3, UniqID ~ Sample, value.var = intCol, fun.aggregate = sum, na.rm = TRUE)
+  tempEv3 <- data.table::dcast(tempEv3, UniqID ~ Sample, value.var = intCol, fun.aggregate = sum, na.rm = TRUE)
   tempEv3 <- as.data.frame(tempEv3)
   tempEv2[, Samples] <- tempEv3[match(tempEv2$ID, tempEv3$UniqID), Samples]
   rm(tempEv, tempEv3)

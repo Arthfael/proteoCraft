@@ -134,8 +134,9 @@ Dig2 <- Dig2[Dig2$Prot %in% allProt,]
 Dig <- Dig[names(Dig) %in% allProt]
 #
 # Match fragments to proteins which could have generated them
-Frag2Prot <- data.table::as.data.table(Dig2[, c("Seq", "Prot")])
-Frag2Prot <- as.data.frame(Frag2Prot[, .(Prot = list(unique(Prot))), by = .(Seq = Seq)]) 
+Frag2Prot <- data.table::setDT(Dig2[, c("Seq", "Prot")])
+Frag2Prot <- as.data.frame(Frag2Prot[, .(Prot = list(unique(Prot))),
+                                     by = .(Seq = Seq)]) 
 #
 Res <- list()
 #

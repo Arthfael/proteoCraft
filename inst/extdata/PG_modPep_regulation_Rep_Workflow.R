@@ -648,10 +648,9 @@ invisible(parallel::clusterCall(parClust, \() {
 temp_PG <- data.frame(id = PG$id,
                       Accession1 = PG$`Protein ID (1st accession)`,
                       Pep = PG$"Peptide IDs")
-tmp <- listMelt(strsplit(temp_PG$Pep, ";"), PG$id, c("id", "PG"))
+tmp <- listMelt(strsplit(temp_PG$Pep, ";"), PG$id, c("id", "PG"), TRUE)
 tmp$id <- as.integer(tmp$id)
 tmp$Seq <- pep$Sequence[match(tmp$id, pep$id)]
-tmp <- data.table::as.data.table(tmp)
 tmp <- tmp[, .(Seq = list(Seq)),
            by = .(PG = PG)]
 temp_PG$Pep <- tmp$Seq[match(PG$id, tmp$PG)]

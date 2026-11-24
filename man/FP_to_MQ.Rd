@@ -33,7 +33,12 @@ FP_to_MQ(
 
 \item{cl}{Already have a cluster handy? Why spend time making a new one, which on top of that may invalidate the old one. Just pass it along!}
 
-\item{OpenSearch}{Is it an open search? If TRUE, will also ignore Open Search-type columns even if they are present. If TRUE, will try to detect and process them - but this is probably still a bit buggy.}
+\item{OpenSearch}{Is it an open search? If TRUE, will also ignore Open Search-type columns even if they are present. If TRUE, will try to detect and process them - but this is probably still a bit buggy.\cr
+Currently, we indicate any open search shift with a (!!) at the end of the sequence. The predicted PTM(s) is (are) indicated in more details in the ..._verbose and Modifications columns, but even then should be validated with a targeted search.\cr
+There is also code for generating 2-character PTM marks for Open Search, but these are not used because Open Search shifts can only rarely be assigned a definite localization:\cr
+ - even single shifts are not assigned an unambiguous position in most cases,
+ - multiple mass shifts on a same peptide are treated as one global shift for the purpose of localization\cr
+Instead, the "MSFragger Localization" column, if present, is provided as is but renamed "Open Search localization".\cr}
 }
 \value{
 A list of (at least) 4 items:\cr

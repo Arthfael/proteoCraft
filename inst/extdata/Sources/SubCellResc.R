@@ -52,7 +52,7 @@ if (LocAnalysis) {
     }
   } else {
     requireNamespace("data.table")
-    tmp2a <- data.table::as.data.table(ev[, kol2])
+    tmp2a <- data.table::setDT(ev[, kol2])
     colnames(tmp2a)[colnames(tmp2a) == ev.col["Original"]] <- "Int"
     tmp2a <- tmp2a[, .(x = sum(Int)),
                    by = .(`Modified sequence` = `Modified sequence`,

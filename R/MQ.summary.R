@@ -234,7 +234,8 @@ MQ.summary <- function(wd,
             htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
             #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
           } else {
-            ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+            ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                            dpi = 300L, width = 10L, height = 10L, units = "in")
           }
         } }
         setwd(wd0)
@@ -289,7 +290,8 @@ MQ.summary <- function(wd,
           htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
           #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
-          ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+          ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                          dpi = 300L, width = 10L, height = 10L, units = "in")
         }
       } }
       setwd(wd0)
@@ -336,7 +338,8 @@ MQ.summary <- function(wd,
           htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
           #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
-          ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+          ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                          dpi = 300L, width = 10L, height = 10L, units = "in")
         }
       } }
       setwd(wd0)
@@ -385,14 +388,16 @@ MQ.summary <- function(wd,
           htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
           #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
         } else {
-          ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+          ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                          dpi = 300L, width = 10L, height = 10L, units = "in")
         }
       } }
       setwd(wd0)
     }
-    # Plot - TIC and Base peak
+    # Plot - TIC and BPC
     if ("Path" %in% colnames(Raw)) {
-      we <- which(file.exists(sub("\\.[^.]+$", ".raw", Raw$Path)))
+      we <- which(file.exists(sub("\\.[^.]+$", ".raw", Raw$Path)) |
+                    dir.exists(sub("\\.[^.]+$", ".d", Raw$Path))  )
       if (length(we)) {
         #
         # Create cluster
@@ -501,7 +506,8 @@ MQ.summary <- function(wd,
                   htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
                   #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
                 } else {
-                  ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+                  ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                                  dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
               } }
               setwd(wd0)
@@ -518,7 +524,8 @@ MQ.summary <- function(wd,
     if (length(wMQ)) {
       msms <- lapply(MQtxt[wMQ], \(dr) {
         tst <- try({
-          rs <- data.table::fread(paste0(dr, "/msms.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
+          rs <- data.table::fread(paste0(dr, "/msms.txt"), integer64 = "numeric",
+                                  check.names = FALSE, data.table = FALSE)
           rs$Search_output_dir <- dr
           return(rs)
         }, silent = TRUE)
@@ -532,7 +539,9 @@ MQ.summary <- function(wd,
         msms <- msms[!is.na(msms$"Raw file"),]
         msms <- msms[order(msms$"Retention time", decreasing = FALSE),]
         msms <- msms[order(msms$"Raw file"),]
-        msms$Unique_scan <- gsub("___ +", "___", do.call(paste, c(msms[, c("Raw file", "Scan number")], sep = "___")))
+        msms$Unique_scan <- gsub("___ +", "___",
+                                 do.call(paste, c(msms[, c("Raw file", "Scan number")],
+                                                  sep = "___")))
         msms$"Retention time bin" <- as.factor(floor(msms$"Retention time"))
         if (length(levels(rawFls)) > sc) {
           msms$iter <- Raw$iter[match(msms$"Raw file", Raw$"Raw file")]
@@ -575,7 +584,8 @@ MQ.summary <- function(wd,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
-              ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+              ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                              dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
           setwd(wd0)
@@ -588,7 +598,8 @@ MQ.summary <- function(wd,
     if (length(wMQ)) {
       msmsScans <- lapply(MQtxt[wMQ], \(dr) {
         tst <- try({
-          rs <- data.table::fread(paste0(dr, "/msmsScans.txt"), integer64 = "numeric", check.names = FALSE, data.table = FALSE)
+          rs <- data.table::fread(paste0(dr, "/msmsScans.txt"), integer64 = "numeric",
+                                  check.names = FALSE, data.table = FALSE)
           rs$Search_output_dir <- dr
           return(rs)
         }, silent = TRUE)
@@ -599,7 +610,9 @@ MQ.summary <- function(wd,
       if (is.data.frame(msmsScans) && nrow(msmsScans)) {
         msmsScans <- msmsScans[order(msmsScans$"Retention time", decreasing = FALSE),]
         msmsScans <- msmsScans[order(msmsScans$"Raw file"),]
-        msmsScans$Unique_scan <- gsub("___ +", "___", do.call(paste, c(msmsScans[, c("Raw file", "Scan number")], sep = "___")))
+        msmsScans$Unique_scan <- gsub("___ +", "___",
+                                      do.call(paste, c(msmsScans[, c("Raw file", "Scan number")],
+                                                       sep = "___")))
         if (msmsOK) {
           msmsScans$Identified <- c("-", "+")[(msmsScans$Unique_scan %in% msms$Unique_scan)+1L]
         }
@@ -642,13 +655,15 @@ MQ.summary <- function(wd,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
-              ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+              ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                              dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
           setwd(wd0)
         }
         # Plot - Precursor apex intensities
-        temp <- data.frame(Retention.time = c(min(msmsScans$"Retention time")+bw*c(1L:(nb-1L)), max(msmsScans$"Retention time")))
+        temp <- data.frame(Retention.time = c(min(msmsScans$"Retention time")+bw*c(1L:(nb-1L)),
+                                              max(msmsScans$"Retention time")))
         # (NB on above: I have to do it that way to avoid an issue with rounding numbers.)
         for (r in sort(unique(msmsScans$"Raw file"))) { #r <- sort(unique(msmsScans$"Raw file"))[1L]
           m <- msmsScans[msmsScans$"Raw file" == r,]
@@ -661,7 +676,8 @@ MQ.summary <- function(wd,
             temp1 <- aggregate(m$"Precursor intensity"[w1]/m$"Precursor apex fraction"[w1], list(tst1),
                                \(x) { sum(x[is.finite(x)]) })
             w1 <- which(temp$Retention.time %in% temp1$Group.1)
-            temp[w1, paste0(r, "___Intensity_Not.identified")] <- temp1$x[match(temp$Retention.time[w1], temp1$Group.1)]
+            temp[w1, paste0(r, "___Intensity_Not.identified")] <- temp1$x[match(temp$Retention.time[w1],
+                                                                                temp1$Group.1)]
           }
           if (length(w2)) {
             tst2 <- vapply(m$"Retention time"[w2], \(x) { temp$Retention.time[temp$Retention.time >= x][1L] }, 1)
@@ -711,14 +727,16 @@ MQ.summary <- function(wd,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
-              ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+              ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                              dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
           setwd(wd0)
         }
         # Plot - Number of MSMS per duty cycle
         tst <- as.numeric(msmsScans$"Scan event number") > c(as.numeric(msmsScans$"Scan event number"[2L:nrow(msmsScans)]), 1)
-        msmsScans$"Scan event number" <- factor(msmsScans$"Scan event number", levels = sort(unique(msmsScans$"Scan event number")))
+        msmsScans$"Scan event number" <- factor(msmsScans$"Scan event number",
+                                                levels = sort(unique(msmsScans$"Scan event number")))
         msmsScans$`Raw file` <- factor(msmsScans$`Raw file`, levels = rawFls)
         for (i in iters) { #i <- 1L
           basettl <- ttl <- "Number of MSMS per duty cycle"
@@ -746,7 +764,8 @@ MQ.summary <- function(wd,
               htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
               #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
             } else {
-              ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+              ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                              dpi = 300L, width = 10L, height = 10L, units = "in")
             }
           } }
           setwd(wd0)
@@ -789,7 +808,8 @@ MQ.summary <- function(wd,
                   htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
                   #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
                 } else {
-                  ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+                  ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                                  dpi = 300L, width = 10L, height = 10L, units = "in")
                 }
               } }
               setwd(wd0)
@@ -847,7 +867,8 @@ MQ.summary <- function(wd,
             htmlwidgets::saveWidget(plotly::partial_bundle(plotLy), paste0(ttl, ".html"))
             #htmlwidgets::saveWidget(plotLy, paste0(ttl, ".html"))
           } else {
-            ggplot2::ggsave(paste0(ttl, ".", s), plot, dpi = 300L, width = 10L, height = 10L, units = "in")
+            ggplot2::ggsave(paste0(ttl, ".", s), plot,
+                            dpi = 300L, width = 10L, height = 10L, units = "in")
           }
         } }
         setwd(wd0)

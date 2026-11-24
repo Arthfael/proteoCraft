@@ -72,10 +72,11 @@ for (grp in grps) { #grp <- grps[1L]
   tmp <- do.call(paste, c(data2[, lsKl], sep = "---"))
   if (LabelType == "Isobaric") {
     smpls <- sub(topattern(ev.ref["Original"]), "", quntKol)
-    data2a <- data.table::as.data.table(data2[, quntKol])
+    data2a <- data.table::setDT(data2[, quntKol])
     colnames(data2a) <- quntKol
     data2a$Group <- tmp
-    data2a <- data2a[, lapply(.SD, sum, na.rm = TRUE), keyby = Group]
+    data2a <- data2a[, lapply(.SD, sum, na.rm = TRUE),
+                     keyby = Group]
     colnames(data2a) <- c("Group", quntKol)
     data2a <- as.data.frame(data2a)
     data2a[, smpls] <- log10(data2a[, quntKol])

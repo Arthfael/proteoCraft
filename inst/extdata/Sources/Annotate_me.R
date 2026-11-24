@@ -60,7 +60,7 @@ if (globalGO) {
   #
   # Below commented data.table aggregation code... which is slower so not used.
   #
-  # temp2 <- data.table::as.data.table(temp[, c("id", kol2)])
+  # temp2 <- data.table::setDT(temp[, c("id", kol2)])
   # temp2 <- temp2[, lapply(.SD, f0), by = .(Group.1 = id), .SDcols = kol2]
   # temp2 <- as.data.frame(temp2)
   #

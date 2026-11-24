@@ -80,7 +80,7 @@ invisible(parallel::clusterCall(parClust, \() {
 }))
 #
 if (!"MW [kDa]" %in% colnames(DB)) {
-  DB$"MW [kDa]" <- round(suppressWarnings(parallel::parSapply(parClust, DB$Sequence, Peptides::mw))/1000, 3L)
+  DB$"MW [kDa]" <- round(Peptides::mw(DB$Sequence)/1000, 3L)
 }
 # We do not want any NAs in our protein and gene names!
 tmpDB <- as.matrix(DB)
@@ -97,9 +97,8 @@ seq$.Proteins <- strsplit(seq$Proteins, ";")
 # There may also be protein IDs not from the data base provided, which should be removed.
 rws <- 1L:nrow(seq)
 tmp1 <- seq$.Proteins
-tmp1 <- listMelt(tmp1)
+tmp1 <- listMelt(tmp1, asDT = TRUE)
 tmp1 <- tmp1[tmp1$value %in% DB$"Protein ID",]
-tmp1 <- data.table::as.data.table(tmp1)
 tmp1 <- tmp1[, .(value = list(value)),
              by = .(L1)]
 tmp1 <- tmp1[order(tmp1$L1),]
@@ -120,7 +119,7 @@ if (CustPG) {
   #Custom_PGs <- Custom_PGs[, "Leading protein IDs", drop = FALSE]
   stopifnot("Leading protein IDs" %in% colnames(Custom_PGs))
   if (!"Priority level" %in% colnames(Custom_PGs)) { Custom_PGs$"Priority level" <- 1L }
-  Custom_PGs <- Custom_PGs[,c("Leading protein IDs", "Priority level")]
+  Custom_PGs <- Custom_PGs[, c("Leading protein IDs", "Priority level")]
   Custom_PGs$"Priority level" <- as.integer(Custom_PGs$"Priority level")
   stopifnot(sum(is.na(Custom_PGs$"Priority level")) == 0L)
   # Create proteins table for custom PGs
@@ -144,19 +143,19 @@ if (CustPG) {
         })
       }
     }
-    temp <- listMelt(strsplit(seq2$Proteins, ";") , seq2$id, c("Protein", "pep.id"))
+    temp <- listMelt(strsplit(seq2$Proteins, ";") , seq2$id, c("Protein", "pep.id"), TRUE)
     w <- which(!as.character(temp$Protein) %in% c("", " ", "NA"))
     if (length(w) != nrow(temp)) {
       warning("Some protein IDs seem dodgy, we will remove them but you should check what happened.")
       temp <- temp[w,]
     }
-    prot2 <- aggregate(temp$pep.id, list(temp$Protein),
-                       paste,
-                       collapse = ";")
-    colnames(prot2) <- c("Protein", "pep.ids")
-    prot2$.pep.ids <- lapply(strsplit(prot2$pep.ids, ";"), as.integer)
+    prot2 <- temp[, .(pep.ids = paste(pep.id, collapse = ";"),
+                      .pep.ids = list(pep.id),
+                      `Peptides count` = length(pep.id)),
+                  keyby = .(Protein = Protein)]
+    prot2 <- as.data.frame(prot2)
+    row.names(prot2) <- 1L:nrow(prot2)
     # Sort by N of peptides
-    prot2$"Peptides count" <- lengths(prot2$.pep.ids)
     prot2 <- prot2[order(prot2$"Peptides count", decreasing = TRUE),]
     prot2$Prot.id <- as.character(1L:nrow(prot2))
     proffset <- nrow(prot2)
@@ -171,12 +170,9 @@ if (CustPG) {
     pgoffset <- nrow(Custom_PGs)
     seq2$.Proteins <- strsplit(seq2$Proteins, ";")
     seq2$.Prot.ids <- lapply(seq2$.Proteins, \(x) { prot2$Prot.id[match(unlist(x), prot2$Protein)] })
-    temp <- listMelt(Custom_PGs$.pep.ids, Custom_PGs$temp.pg.id, c("pep.id", "temp.pg.id"))
-    temp <- aggregate(temp$temp.pg.id,
-                      list(temp$pep.id),
-                      paste,
-                      collapse = ";")
-    colnames(temp) <- c("pep.id", "temp.pg.ids")
+    temp <- listMelt(Custom_PGs$.pep.ids, Custom_PGs$temp.pg.id, c("pep.id", "temp.pg.id"), TRUE)
+    temp <- temp[, .(temp.pg.ids = paste(temp.pg.id, collapse = ";")),
+                 by = .(pep.id = pep.id)]
     seq2$temp.pg.ids <- temp$temp.pg.ids[match(seq2$id, temp$pep.id)]
     seq2$.temp.pg.ids <- strsplit(seq2$temp.pg.ids, ";")
     w1 <- which(Custom_PGs$`Peptides count` > 0L)
@@ -194,26 +190,19 @@ if (CustPG) {
 }
 # Proteins to peptides table:
 # Unique proteins...
-temp <- listMelt(strsplit(seq$Proteins, ";"), seq$id, c("Protein", "pep.id"))
+temp <- listMelt(strsplit(seq$Proteins, ";"), seq$id, c("Protein", "pep.id"), TRUE)
 w <- which(!as.character(temp$Protein) %in% c("", " ", "NA"))
 if (length(w) != nrow(temp)) {
   warning("Some protein IDs seem dodgy, we will remove them but you should check what happened.")
   temp <- temp[w,]
 }
-prot <- aggregate(temp$pep.id,
-                  list(temp$Protein),
-                  paste,
-                  collapse = ";")
-colnames(prot) <- c("Protein", "pep.ids")
-# data.table rewrite of above is actually slightly slower
-# tmp1 <- data.table::data.table(pep.id = temp$pep.id,
-#                                Protein = temp$Protein)
-# tmp1 <- tmp1[, .(pep.ids = paste(pep.id, collapse = ";")), by = .(Protein)]
-# prot <- as.data.frame(tmp1)
-# ... done! With their temporary peptide IDs.
-prot$.pep.ids <- lapply(strsplit(prot$pep.ids, ";"), as.integer)
+prot <- temp[, .(pep.ids = paste(pep.id, collapse = ";"),
+                 .pep.ids = list(pep.id),
+                 `Peptides count` = length(pep.id)),
+             keyby = .(Protein = Protein)]
+prot <- as.data.frame(prot)
+row.names(prot) <- 1L:nrow(prot)
 # Sort by N of peptides
-prot$"Peptides count" <- lengths(prot$.pep.ids)
 prot <- prot[order(prot$"Peptides count", decreasing = TRUE),]
 # Temporary protein IDs
 prot$Prot.id <- as.character(1L:nrow(prot) + proffset)
@@ -224,10 +213,8 @@ if (CustPG) {
 rownames(prot) <- stringi::stri_join("Pr_", prot$Prot.id)
 # assign temp prot IDs to peptides
 tmp1 <- seq$.Proteins
-tmp1 <- listMelt(tmp1, ColNames = c("Protein", "row"))
-tmp1$Prot.id <- prot$Prot.id[match(tmp1$Protein, prot$Protein)]
-tmp1 <- data.table::data.table(ProtID = tmp1$Prot.id,
-                               row = tmp1$row)
+tmp1 <- listMelt(tmp1, ColNames = c("Protein", "row"), asDT = TRUE)
+tmp1$ProtID <- prot$Prot.id[match(tmp1$Protein, prot$Protein)]
 tmp1 <- tmp1[, .(.Prot.ids = list(ProtID)),
              by = .(row = row)]
 tmp1 <- as.data.frame(tmp1)
@@ -236,53 +223,22 @@ rws <- 1L:nrow(seq)
 seq$.Prot.ids <- lapply(rws, c) 
 w <- which(rws %in% tmp1$row)
 seq$.Prot.ids <- tmp1$.Prot.ids
+#
 # For each protein P, find all other proteins Q it shares peptides with...
 #a1 <- Sys.time()
-tmp1 <- prot$.pep.ids
-tmp2 <- seq[, c("id", ".Prot.ids")]
-tmpFls <- vapply(1L:2L, \(x) { tempfile(fileext = ".RDS") }, "")
-parallel::clusterExport(parClust, "tmpFls", envir = environment())
-readr::write_rds(tmp1, tmpFls[1L])
-readr::write_rds(tmp2, tmpFls[2L])
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-  assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-  return()
-}))
-unlink(tmpFls)
-f0 <- \(x) { sort(unique(unlist(tmp2$.Prot.ids[match(unlist(x), tmp2$id)]))) }
-#environment(f0) <- .GlobalEnv
-prot$pep_to_P <- parallel::parSapply(parClust, tmp1, f0)
-# Alternative slower rewrite
-#a2 <- Sys.time()
-# b1 <- Sys.time()
-# tmp1 <- prot$.pep.ids
-# tmp1 <- listMelt(tmp1, ColNames = c("pep.id", "row"))
-# tmp1$.Prot.ids <- seq$.Prot.ids[match(tmp1$pep.id, seq$id)]
-# tmp1 <- listMelt(tmp1$.Prot.ids, tmp1$row, c("Prot.id", "row"))
-# tmp1 <- data.table::data.table(Prot.id = tmp1$Prot.id,
-#                                row = tmp1$row)
-# tmp1 <- tmp1[, .(.Prot.ids = sort(unique((Prot.id)))), by = .(row = row)]
-# tmp1 <- as.data.frame(tmp1)
-# tmp1 <- tmp1[order(tmp1$row),]
-# rws <- 1L:nrow(prot)
-# prot$pep_to_P <- "" 
-# w <- which(rws %in% tmp1$row)
-# prot$pep_to_P[w] <- tmp1$.Prot.ids
-# b2 <- Sys.time()
-# 
-#... then get those proteins' peptides
-# Skipping, this takes too long
-# tmp1 <- prot[, c("pep_to_P", ".pep.ids", "Prot.id")]
-# parallel::clusterExport(parClust, "tmp1", envir = environment())
-# f0 <- \(x) { lapply(unlist(x), \(y) { tmp1$.pep.ids[match(y, tmp1$Prot.id)] }) }
-# #environment(f0) <- .GlobalEnv
-# prot$pep_to_P_to_pep <- parallel::parSapply(parClust, tmp1$pep_to_P, f0)
+tmp1 <- listMelt(prot$.pep.ids)
+tmp1$prIDs <- seq$.Prot.ids[match(tmp1$value, seq$id)]
+tmp1 <- listMelt(tmp1$prIDs, tmp1$L1, asDT = TRUE)
+tmp1 <- tmp1[, .(prIDs = list(sort(unique(value)))),
+             by = (row = L1)]
+prot$pep_to_P <- tmp1$prIDs[match(1L:nrow(prot), tmp1$row)]
+#
 # Identify minimal set of proteins required to explain the identified peptides:
-cat(" - Identifying minimal set of proteins required to explain observed peptides.\n")
+cat(" - Identifying minimal set of protein groups required to explain observed peptides.\n")
 ## Checking which proteins are contained within another?
-## A protein is Leading (at this stage) if it cannot be subsumed into another:
-cat(" - Identifying, for each protein ID, whether its peptides are contained by a single other protein ID.\n")
+## A protein is Leading (at this stage) if it cannot be subsumed into another.
+cat("   - Identifying, for each protein ID, which other protein IDs are subsumable within it.\n")
+# We actually start in reverse, by checking for each protein which other proteins it can explain
 tmp1 <- prot[, c(".pep.ids", "pep_to_P", "Prot.id")]
 tmpFl <- tempfile(fileext = ".RDS")
 parallel::clusterExport(parClust, "tmpFl", envir = environment())
@@ -301,158 +257,90 @@ f0 <- \(x) {
   x3l <- lengths(pep_to_P_to_pep)
   test <- vapply(pep_to_P_to_pep, \(y) { sum(y %in% pep.ids) }, 1L) == x3l # Can the 2nd protein be subsumed in the 1st?
   res <- pep_to_P[test]
-  return(res)
+  res <- base::setdiff(res, unlist(x[[3L]]))
+  names(res) <- NULL
+  return(list(res))
 }
-#environment(f0) <- .GlobalEnv
-protTemp <- parallel::parApply(parClust, tmp1[, c(".pep.ids", "pep_to_P")], 1L, f0)
-#
-## For each protein ID, which proteins does it contain?
-cat(" - Identifying, for each protein ID, which other IDs are subsumable within it.\n")
-tmp1 <- prot[, "Prot.id", drop = FALSE]
-tmp1$temp <- protTemp
-tmpFl <- tempfile(fileext = ".RDS")
-parallel::clusterExport(parClust, "tmpFl", envir = environment())
-readr::write_rds(tmp1, tmpFl)
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFl), .GlobalEnv)
-  return()
-}))
-unlink(tmpFl)
-f0 <- \(x) {
-  x1 <- tmp1[["Prot.id"]][[x]]
-  x2 <- tmp1[["temp"]][[x]]
-  return(list(base::setdiff(x2, x1)))
-}
-#environment(f0) <- .GlobalEnv
-prot$Contains <- parallel::parLapply(parClust, 1L:nrow(prot), f0)
+prot$Contains <- parallel::parApply(parClust, tmp1, 1L, f0)
 ## Contained proteins and their temp peptide ids:
 contained <- data.frame(Contained = sort(as.integer(unique(unlist(prot$Contains)))))
 contained$.pep.ids <- prot$.pep.ids[match(contained$Contained, prot$Prot.id)]
 ## Assign a temporary Leading status...
 ### A protein may be contained by (an)other protein(s) with exactly the same peptides.
 ### All non-contained proteins get Leading status.
-cat(" - Identifying temporary Leading protein IDs - i.e. those which are not subsumable into a single other protein ID.\n")
+cat("   - Identifying temporary Leading protein IDs - i.e. those which are not subsumable into a single other protein ID.\n")
 prot$Is.Leading <- !prot$Prot.id %in% contained$Contained
 ## Identify containers of each contained protein:
-cat(" - Identifying Leading protein ID containing each subsumable protein ID.\n")
+cat("   - Identifying Leading protein ID containing each subsumable protein ID.\n")
 w <- which(lengths(prot$Contains) > 0L)
 a <- setNames(prot$Contains[w], prot$Prot.id[w])
 a <- a[lengths(a) > 0L]
 if (length(a)) {
-  temp <- listMelt(a)
-  temp <- data.table::data.table(value = temp$value,
-                                 L1 = temp$L1)
+  temp <- listMelt(a, asDT = TRUE)
   temp <- temp[, .(byWhom = list(L1)),
                by = .(Contained = value)]
   temp <- as.data.frame(temp)
   contained$.byWhom <- temp$byWhom[match(contained$Contained, temp$Contained)]
   ## Container peptide IDs:
-  tmp3 <- contained$.byWhom
-  tmp4 <- prot[, c(".pep.ids", "Prot.id")]
-  tmpFls <- vapply(1L:2L, \(x) { tempfile(fileext = ".RDS") }, "")
-  parallel::clusterExport(parClust, "tmpFls", envir = environment())
-  readr::write_rds(tmp3, tmpFls[1L])
-  readr::write_rds(tmp4, tmpFls[2L])
-  invisible(parallel::clusterCall(parClust, \() {
-    assign("tmp3", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-    assign("tmp4", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-    return()
-  }))
-  unlink(tmpFls)
-  f0 <- \(x) { tmp4$.pep.ids[match(unlist(x), tmp4$Prot.id)] }
-  #environment(f0) <- .GlobalEnv
-  contained$Container.pep.ids <- parallel::parLapply(parClust, tmp3, f0)
+  tmp3 <- listMelt(contained$.byWhom)
+  tmp3$IDs <- prot$.pep.ids[match(tmp3$value, prot$Prot.id)]
+  tmp4 <- listMelt(tmp3$IDs, ColNames = c("value", "row3"), asDT = TRUE)
+  tmp4[, c("byWhom", "row")] <- tmp3[tmp4$row3, c("value", "L1")]
+  tmp4 <- tmp4[, .(value = list(value)),
+               by = .(row = row,
+                      byWhom = byWhom)]
+  tmp4 <- tmp4[, .(value = list(value)),
+               by = .(row = row)]
+  contained$Container.pep.ids <- tmp4$value[match(1L:nrow(contained), tmp4$row)]
   ## Now these containers, are they "larger" (N of peptides)?
-  tmp1 <- contained[, c(".pep.ids", "Container.pep.ids")]
-  tmpFl <- tempfile(fileext = ".RDS")
-  parallel::clusterExport(parClust, "tmpFl", envir = environment())
-  readr::write_rds(tmp1, tmpFl)
-  invisible(parallel::clusterCall(parClust, \() {
-    assign("tmp1", readr::read_rds(tmpFl), .GlobalEnv)
-    return()
-  }))
-  unlink(tmpFl)
-  f0 <- \(x) {
-    x1 <- unlist(x[[1L]])
-    x1l <- length(x1)
-    x2 <- x[[2L]]
-    x2l <- lengths(x2)
-    res <- x2l > x1l
-    return(res)
-  }
-  #environment(f0) <- .GlobalEnv
-  contained$Container.is.larger <- parallel::parApply(parClust, tmp1, 1L, f0)
+  l <- lengths(contained$.pep.ids)
+  contained$Container.is.larger <- lapply(1L:nrow(contained), \(i) {
+    lengths(contained$Container.pep.ids[[i]]) > l[[i]]
+  })
   #
-  tmp1 <- contained$Container.is.larger
-  tmpFl <- tempfile(fileext = ".RDS")
-  parallel::clusterExport(parClust, "tmpFl", envir = environment())
-  readr::write_rds(tmp1, tmpFl)
-  invisible(parallel::clusterCall(parClust, \() {
-    assign("tmp1", readr::read_rds(tmpFl), .GlobalEnv)
-    return()
-  }))
-  unlink(tmpFl)
-  f0 <- \(x) { sum(x) }
-  #environment(f0) <- .GlobalEnv
-  contained$test <- parallel::parSapply(parClust, tmp1, f0)
+  tst <- listMelt(contained$Container.is.larger, asDT = TRUE)
+  tst <- tst[, .(sum = sum(value)),
+             by = .(row = L1)]
+  contained$test <- tst$sum[match(1L:nrow(contained), tst$row)]
   ## Contained proteins get (temporary) Leading status here if they are equivalent to all of their containers,
   ## i.e. if they have no container larger than them:
   contained$Is.Leading <- contained$test == 0L
   prot$Is.Leading[match(contained$Contained[contained$Is.Leading], prot$Prot.id)] <- TRUE
 }
 ## Create protein groups:
-cat(" - Creating temporary protein groups.\n")
+cat("   - Creating temporary protein groups.\n")
 pg <- prot
 if (CustPG) { pg <- pg[!pg$Prot.id %in% prot2$Prot.id,] }
+data.table::setDT(pg)
 pg <- pg[pg$Is.Leading, c("Protein", "Prot.id", "pep.ids")]
-pg <- aggregate(pg[,c("Protein", "Prot.id")],
-                list(pg$pep.ids),
-                paste,
-                collapse = ";")
-colnames(pg) <- c("Peptide IDs", "Leading protein IDs", "lead.protein.ids")
+pg <- pg[, .(`Leading protein IDs` = paste(Protein, collapse = ";"),
+             lead.protein.ids = paste(Prot.id, collapse = ";")),
+         keyby = .(`Peptide IDs` = pep.ids)]
+pg <- as.data.frame(pg)
 pg$temp.pg.id <- as.character(1L:nrow(pg) + pgoffset)
 pg$.pep.ids <- lapply(strsplit(pg$"Peptide IDs", ";"), as.integer)
 pg$"Peptides count" <- lengths(pg$.pep.ids)
 pg$.Leading.protein.IDs <- strsplit(pg$"Leading protein IDs", ";")
 pg$.lead.protein.ids <- strsplit(pg$lead.protein.ids, ";")
 #temp <- prot[prot$Is.Leading,]
-tmp1 <- pg$.lead.protein.ids
-tmp2 <- prot[, c("Contains", "Prot.id")]
-tmpFls <- vapply(1L:2L, \(x) { tempfile(fileext = ".RDS") }, "")
-parallel::clusterExport(parClust, "tmpFls", envir = environment())
-readr::write_rds(tmp1, tmpFls[1L])
-readr::write_rds(tmp2, tmpFls[2L])
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-  assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-  return()
-}))
-unlink(tmpFls)
-f0 <- \(x) {
-  x <- unlist(x)
-  res <- unlist(tmp2$Contains[match(x, tmp2$Prot.id)])
-  res <- base::setdiff(res, x)
-  return(res)
-}
-#environment(f0) <- .GlobalEnv
-pg$"Also contains" <- parallel::parSapply(parClust, tmp1, f0)
+tmp <- listMelt(pg$.lead.protein.ids, 1L:nrow(pg), ColNames = c("protID", "rowPG"))
+tmp$Contains <- prot$Contains[match(tmp$protID, prot$Prot.id)]
+tmp2 <- listMelt(tmp$Contains, 1L:nrow(tmp), ColNames = c("Contained", "row1"), asDT = TRUE)
+tmp2[, c("rowPG", "protID")] <- tmp[tmp2$row1, c("rowPG", "protID")]
+tmp2 <- tmp2[, .(Contained = list(base::setdiff(Contained, protID))),
+             by = .(rowPG = rowPG)]
+pg$"Also contains" <- tmp2$Contained[match(1L:nrow(pg), tmp2$rowPG)]
 #
-tmp1 <- pg[,c(".lead.protein.ids", "Also contains")]
+tmp1 <- pg[, c(".lead.protein.ids", "Also contains")]
 tmp2 <- prot[, c("Protein", "Prot.id")]
 tmpFls <- vapply(1L:2L, \(x) { tempfile(fileext = ".RDS") }, "")
-parallel::clusterExport(parClust, "tmpFls", envir = environment())
-readr::write_rds(tmp1, tmpFls[1L])
-readr::write_rds(tmp2, tmpFls[2L])
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-  assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-  return()
-}))
-unlink(tmpFls)
-f0 <- \(x) { list(tmp2$Protein[match(unlist(x), tmp2$Prot.id)]) }
-#environment(f0) <- .GlobalEnv
-pg$.Protein.IDs <- parallel::parApply(parClust, tmp1, 1L, f0)
-pg$"Protein IDs" <- vapply(pg$.Protein.IDs, \(x) { paste(unlist(x), collapse = ";") }, "")
+tmp1 <- rbind(listMelt(pg$".lead.protein.ids", ColNames = c("protID", "row"), asDT = TRUE),
+              listMelt(pg$"Also contains", ColNames = c("protID", "row"), asDT = TRUE))
+tmp1$Protein <- prot$Protein[match(tmp1$protID, tmp2$Prot.id)]
+tmp1 <- tmp1[, .(.Protein.IDs = list(Protein),
+                 `Protein IDs` = paste(Protein, collapse = ";")),
+             by = .(row = row)]
+pg[, c(".Protein.IDs", "Protein IDs")] <- tmp1[match(1L:nrow(pg), tmp1$row), c(".Protein.IDs", "Protein IDs")]
 if (CustPG) {
   Custom_PGs$"Also contains" <- lapply(Custom_PGs$.lead.protein.ids, \(x) {
     res <- unlist(prot$Contains[match(unlist(x), prot$Prot.id)])
@@ -465,9 +353,7 @@ if (CustPG) {
   Custom_PGs$"Protein IDs" <- vapply(Custom_PGs$.Protein.IDs, \(x) { paste(unlist(x), collapse = ";") }, "")
 }
 # Assign temporary PG IDs to seq
-temp <- listMelt(pg$.pep.ids, pg$temp.pg.id, c("pep.id", "temp.pg.id"))
-temp <- data.table::data.table(pep.id = temp$pep.id,
-                               temp.pg.id = temp$temp.pg.id)
+temp <- listMelt(pg$.pep.ids, pg$temp.pg.id, c("pep.id", "temp.pg.id"), asDT = TRUE)
 temp <- temp[, .(temp.pg.ids = paste(temp.pg.id, collapse = ";")),
              by = .(pep.id = pep.id)] 
 temp <- as.data.frame(temp)
@@ -478,33 +364,19 @@ cat(paste0(" ---> ", nrow(pg), " protein groups are required at this stage.\n"))
 ## In the previous steps, we identified proteins which are not contained within another single protein.
 ## These then became the founding stones of protein groups.
 ## However, we should also remove PGs which can be explained by a combination of other PGs.
-cat(" - Identifying protein groups which can be subsumed into a combination of other protein groups.\n")
-tmp1 <- 1L:nrow(pg)
-tmp2 <- pg$.pep.ids
-tmpFls <- vapply(1L:2L, \(x) { tempfile(fileext = ".RDS") }, "")
-parallel::clusterExport(parClust, "tmpFls", envir = environment())
-readr::write_rds(tmp1, tmpFls[1L])
-readr::write_rds(tmp2, tmpFls[2L])
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-  assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-  return()
-}))
-unlink(tmpFls)
-f0 <- \(x) {
-  x <- unlist(x)
-  a1 <- base::setdiff(tmp1, x)
-  x1 <- unlist(tmp2[x]) # pep ids for that PG
-  y <- unique(unlist(tmp2[a1])) # pep ids for all other PGs
-  sum(x1 %in% y) == length(x1) # Are all peptides for that PG contained in the others?
-}
-#environment(f0) <- .GlobalEnv
-pg$Removable <- parallel::parSapply(parClust, tmp1, f0)
+cat("   - Identifying protein groups which can be subsumed into a combination of other protein groups.\n")
+tmp1 <- listMelt(pg$.pep.ids, ColNames = c("pepID", "row"), asDT = TRUE)
+# Are all peptides for that PG contained in the others?
+# A simpler way to answer this is to ask": are all peptides in the PG assigned to 2+ PGs?
+tmp1$wPGs <- seq$.temp.pg.ids[match(tmp1$pepID, seq$id)]
+tmp1$tst <- lengths(tmp1$wPGs) > 1L
+tmp1 <- tmp1[, .(tst = as.logical(min(tst))),
+             by = .(row = row)]
+pg$Removable <- tmp1$tst[match(1L:nrow(pg), tmp1$row)]
+#
 # Calculate individual and global PEPs - useful for later
 cat(" - Calculating individual and global protein group PEPs (Posterior Error Probabilities).\n")
-temp <- listMelt(strsplit(seq$Proteins, ";"), seq$PEP)
-temp <- data.table::data.table(value = temp$value,
-                               L1 = temp$L1)
+temp <- listMelt(strsplit(seq$Proteins, ";"), seq$PEP, asDT = TRUE)
 temp <- temp[, .(x = prod(L1)),
              by = .(Group.1 = value)] 
 temp <- as.data.frame(temp)
@@ -512,9 +384,7 @@ prot$PEP <- NA_real_
 w <- which(prot$Protein %in% temp$Group.1)
 prot$PEP[w] <- temp$x[match(prot$Protein[w], temp$Group.1)]
 if (CustPG) {
-  temp <- listMelt(strsplit(seq2$Proteins, ";"), seq2$PEP)
-  temp <- data.table::data.table(value = temp$value,
-                                 L1 = temp$L1)
+  temp <- listMelt(strsplit(seq2$Proteins, ";"), seq2$PEP, asDT = TRUE)
   temp <- temp[, .(x = prod(L1)),
                by = .(Group.1 = value)] 
   temp <- as.data.frame(temp)
@@ -524,42 +394,20 @@ if (CustPG) {
 #
 tmp1 <- pg$.Protein.IDs
 tmp2 <- prot[, c("PEP", "Protein")]
-tmpFls <- vapply(1L:2L, \(x) { tempfile(fileext = ".RDS") }, "")
-parallel::clusterExport(parClust, "tmpFls", envir = environment())
-readr::write_rds(tmp1, tmpFls[1L])
-readr::write_rds(tmp2, tmpFls[2L])
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-  assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-  return()
-}))
-unlink(tmpFls)
 f0 <- \(x) { tmp2$PEP[match(unlist(x), tmp2$Protein)] }
-#environment(f0) <- .GlobalEnv
-pg$.PEPs <- parallel::parSapply(parClust, tmp1, f0)
-#
-tmp1 <- pg$.PEPs
-tmpFl <- tempfile(fileext = ".RDS")
-parallel::clusterExport(parClust, "tmpFl", envir = environment())
-readr::write_rds(tmp1, tmpFl)
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFl), .GlobalEnv)
-  return()
-}))
-unlink(tmpFl)
-f0 <- \(x) { paste(x, collapse = ";") }
-#environment(f0) <- .GlobalEnv
-pg$PEPs <- parallel::parSapply(parClust, tmp1, f0)
-f0 <- \(x) { min(x) }
-#environment(f0) <- .GlobalEnv
-pg$PEP <- parallel::parSapply(parClust, tmp1, f0)
+tmp1 <- listMelt(pg$.Protein.IDs, asDT = TRUE)
+tmp1$PEP <- prot$PEP[match(tmp1$value, prot$Protein)]
+tmp1 <- tmp1[, .(.PEPs = list(PEP),
+                 PEPs = paste(PEP, collapse = ";"),
+                 PEP = min(PEP)),
+             by = .(row = L1)]
+pg[, c(".PEPs", "PEPs", "PEP")] <- tmp1[match(1L:nrow(pg), tmp1$row), c(".PEPs", "PEPs", "PEP")]
 if (CustPG) {
   Custom_PGs$.Protein.IDs
   Custom_PGs$.PEPs <- lapply(Custom_PGs$.Protein.IDs, \(x) { prot$PEP[match(x, prot$Protein)] })
   Custom_PGs$PEPs <- vapply(Custom_PGs$.PEPs, paste, "", collapse = ";")
   Custom_PGs$PEP <- vapply(Custom_PGs$.PEPs, min, 1)
 }
-#Removable <- aggregate(pg$Removable, list(pg$Removable), length)
 ##
 ## So there are a few PGs which we can subsume into others. Oh joy. Er. Ok. How do we deal with this?
 ## The first step is to identify a closed group of overlapping PGs and their peptides.
@@ -759,43 +607,25 @@ pepcolnm <- if (grepl("peptide", Peptide.IDs, ignore.case = TRUE)) {
 } else { "Peptide IDs" }
 pg[[pepcolnm]] <- vapply(pg$.pep.ids, paste, "", collapse = ";")
 # Assign final PG IDs to seq
-tmp1 <- seq$.temp.pg.ids
-tmp2 <- pg[, c("id", "temp.pg.id")]
-tmpFls <- vapply(1L:2L, \(x) { tempfile(fileext = ".RDS") }, "")
-parallel::clusterExport(parClust, "tmpFls", envir = environment())
-readr::write_rds(tmp1, tmpFls[1L])
-readr::write_rds(tmp2, tmpFls[2L])
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-  assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-  return()
-}))
-unlink(tmpFls)
-f0 <- \(x) { tmp2$id[tmp2$temp.pg.id %in% unlist(x)] }
-#environment(f0) <- .GlobalEnv
-tmp1 <- seq$.PG.ids <- parallel::parSapply(parClust, tmp1, f0)
-tmpFl <- tempfile(fileext = ".RDS")
-parallel::clusterExport(parClust, "tmpFl", envir = environment())
-readr::write_rds(tmp1, tmpFl)
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFl), .GlobalEnv)
-  return()
-}))
-unlink(tmpFl)
-f0 <- \(x) { paste(x, collapse = ";") }
-#environment(f0) <- .GlobalEnv
-seq$"Protein group IDs" <- parallel::parSapply(parClust, tmp1, f0)
+tmp1 <- listMelt(seq$.temp.pg.ids, asDT = TRUE)
+tmp1$id <- pg$id[match(tmp1$value, pg$temp.pg.id)]
+tmp1 <- tmp1[!is.na(tmp1$id),]
+tmp1 <- tmp1[order(tmp1$id),]
+tmp1 <- tmp1[, .(.IDs = list(id),
+                 IDs = paste(id, collapse = ";")),
+             by = .(row = L1)]
+seq[, c(".PG.ids", "Protein group IDs")] <- tmp1[match(1L:nrow(seq), tmp1$row), c(".IDs", "IDs")]
 pg$temp.pg.id <- NULL
 # Unique peptides: peptides unique to a protein group
 cat(" - Identifying unique peptides.\n")
-temp <- seq[!grepl(";", seq$"Protein group IDs"), c("id", "Protein group IDs")]
-temp <- aggregate(temp$id, list(temp$"Protein group IDs"), \(x) {
-  x
-})
-colnames(temp) <- c("id", "pep.ids")
+l1 <- !grepl(";", seq$"Protein group IDs")
+temp <- data.table::data.table(id = seq$id[l1],
+                               pgID = seq$"Protein group IDs"[l1])
+temp <- temp[, .(pep.ids = list(id)),
+             keyby = .(pgID = pgID)]
 pg$.unique.pep.ids <- list(NULL)
-w <- which(pg$id %in% temp$id)
-pg$.unique.pep.ids[w] <- temp$pep.ids[match(pg$id[w], temp$id)]
+w <- which(pg$id %in% temp$pgID)
+pg$.unique.pep.ids[w] <- temp$pep.ids[match(pg$id[w], temp$pgID)]
 pg$"Unique peptide IDs" <- vapply(pg$.unique.pep.ids, paste, "", collapse = ";")
 pg$"Unique peptides" <- lengths(pg$.unique.pep.ids)
 # Apply Occam's razor:
@@ -850,35 +680,19 @@ f0 <- \(x) {
 #environment(f0) <- .GlobalEnv
 tmp$.Razor_PG_IDs <- parallel::parSapply(parClust, tmp1, f0)
 tmp$Razor_PG_IDs <- vapply(tmp$.Razor_PG_IDs, paste, "", collapse = ";")
-seq[, c(".Razor.protein.group.ID", "Razor protein group ID")] <- tmp[match(seq$"Protein group IDs", tmp$PG_IDs), c(".Razor_PG_IDs", "Razor_PG_IDs")]
+seq[, c(".Razor.protein.group.ID", "Razor protein group ID")] <- tmp[match(seq$"Protein group IDs", tmp$PG_IDs),
+                                                                     c(".Razor_PG_IDs", "Razor_PG_IDs")]
+#
 c1 <- c("Leading proteins", "Leading razor proteins")
 c2 <- c(".Protein.group.IDs", ".Razor.protein.group.ID")
-tmp1 <- pg[, c("id", ".Leading.protein.IDs")]
-tmp2 <- prot[, c("PEP", "Protein")]
-tmp3 <- seq[, c2]
-tmpFls <- vapply(1L:4L, \(x) { tempfile(fileext = ".RDS") }, "")
-parallel::clusterExport(parClust, "tmpFls", envir = environment())
-readr::write_rds(tmp1, tmpFls[1L])
-readr::write_rds(tmp2, tmpFls[2L])
-readr::write_rds(tmp3, tmpFls[3L])
-readr::write_rds(c2, tmpFls[4L])
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-  assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-  assign("tmp3", readr::read_rds(tmpFls[3L]), .GlobalEnv)
-  assign("c2", readr::read_rds(tmpFls[4L]), .GlobalEnv)
-  return()
-}))
-unlink(tmpFls)
-f0 <- \(x) {
-  x <- unlist(tmp1$.Leading.protein.IDs[match(unlist(x), tmp1$id)])
-  y <- tmp2$PEP[match(x, tmp2$Protein)]
-  x <- x[order(y, decreasing = FALSE)]
-  return(paste(x, collapse = ";"))
-}
-#environment(f0) <- .GlobalEnv
-for (i in 1L:length(c1)) {
-  seq[[c1[i]]] <- parallel::parSapply(parClust, tmp3[[c2[i]]], f0)
+for (i in 1L:length(c1)) { #i <- 1L
+  tmp1 <- listMelt(seq[[c2[i]]], ColNames = c("pgID", "row"))
+  tmp1 <- listMelt(pg$.Leading.protein.IDs[match(tmp1$pgID, pg$id)], tmp1$row, c("leadPrID", "row"), TRUE)
+  tmp1$PEP <- prot$PEP[match(tmp1$leadPrID, prot$Protein)]
+  tmp1 <- tmp1[order(tmp1$PEP, decreasing = FALSE), c("leadPrID", "row")]
+  tmp1 <- tmp1[, .(leadPrIDs = paste(leadPrID, collapse = ";")),
+               by = .(row = row)]
+  seq[[c1[i]]] <- tmp1$leadPrIDs[match(1L:nrow(seq), tmp1$row)]
 }
 # Sort by PEP
 if (CustPG) { # Priority-based razor peptides decision for custom protein groups
@@ -900,8 +714,9 @@ if (length(pg$.lead.protein.ids) != length(unique(pg$.lead.protein.ids))) {
   stop("A \"leading\" protein cannot be in several protein groups!")
 }
 # Assign razor peptides to protein groups
-temp <- listMelt(as.list(seq$.Razor.protein.group.ID), seq$id)
-temp <- aggregate(temp$L1, list(temp$value), \(x) { paste(sort(as.integer(unique(x))), collapse = ";") })
+temp <- listMelt(as.list(seq$.Razor.protein.group.ID), seq$id, asDT = TRUE)
+temp <- temp[, .(x = paste(sort(as.integer(unique(L1))), collapse = ";")), 
+             keyby = .(Group.1 = value)]
 pg$"Razor peptide IDs" <- temp$x[match(pg$id, as.integer(temp$Group.1))]
 pg$.razor.pep.ids <- lapply(strsplit(pg$`Razor peptide IDs`, ";"), as.integer)
 pg$"Razor + unique peptides" <- lengths(pg$.razor.pep.ids)
@@ -910,32 +725,31 @@ pg$.Peptide.is.razor <- apply(pg[, c(".pep.ids", ".razor.pep.ids")], 1L, \(x) { 
 })
 # 
 pg$"Peptide is razor" <- vapply(pg$.Peptide.is.razor, paste, "", collapse = ";")
-c1 <- paste0("Peptide counts (", c("all", "unique", "razor+unique"), ")")
-c2 <- c(".pep.ids", ".unique.pep.ids", ".razor.pep.ids", ".Protein.IDs")
-tmp1 <- pg[, c2]
-tmp2 <- prot[, c(".pep.ids", "Protein")]
-tmpFls <- vapply(1L:3L, \(x) { tempfile(fileext = ".RDS") }, "")
-parallel::clusterExport(parClust, "tmpFls", envir = environment())
-readr::write_rds(tmp1, tmpFls[1L])
-readr::write_rds(tmp2, tmpFls[2L])
-readr::write_rds(c2, tmpFls[3L])
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-  assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-  assign("c2", readr::read_rds(tmpFls[3L]), .GlobalEnv)
-  return()
-}))
-unlink(tmpFls)
-f0 <- \(x) {
-  x1 <- unlist(x[[1L]]); x2 <- unlist(x[[2L]]); x3 <- unlist(x[[3L]]); x4 <- unlist(x[[4L]])
-  x4 <- tmp2$.pep.ids[match(x4, tmp2$Protein)]
-  x1 <- paste(vapply(x4, \(y) { sum(y %in% x1) }, 1L), collapse = ";")
-  x2 <- paste(vapply(x4, \(y) { sum(y %in% x2) }, 1L), collapse = ";")
-  x3 <- paste(vapply(x4, \(y) { sum(y %in% x3) }, 1L), collapse = ";")
-  return(c(x1, x2, x3))
+# Rewrite below using data.table was done by Claude: mine was much more cumbersome.
+c1  <- paste0("Peptide counts (", c("all", "unique", "razor+unique"), ")")
+c2  <- c(".pep.ids", ".unique.pep.ids", ".razor.pep.ids")
+cnt <- c("n_all", "n_unique", "n_razor")
+ids <- listMelt(pg$.Protein.IDs, ColNames = c("Protein", "id"), asDT = TRUE)
+ids[, ord := seq_len(.N),
+    by = id]
+keep <- !duplicated(prot$Protein)
+prot_pep <- data.table::data.table(Protein = rep.int(prot$Protein[keep], lengths(prot$.pep.ids[keep])),
+                                   pep = unlist(prot$.pep.ids[keep], use.names = FALSE))
+pairs <- prot_pep[ids, on = "Protein", allow.cartesian = TRUE]
+for (k in 1L:3L) {
+  hit <- listMelt(pg[[c2[k]]], ColNames = c("pep", "id"), asDT = TRUE)[!is.na(pep)]
+  pairs[, (cnt[k]) := 0L]
+  pairs[hit, on = .(id, pep), (cnt[k]) := 1L]
 }
-#environment(f0) <- .GlobalEnv
-pg[, c1] <- as.data.frame(t(parallel::parApply(parClust, tmp1[, c2], 1L, f0)))
+res <- pairs[, lapply(.SD, sum),
+             by = .(id, ord),
+             .SDcols = cnt][order(id, ord),
+                            lapply(.SD, paste, collapse = ";"),
+                            by = id,
+                            .SDcols = cnt]
+pg[, c1] <- ""
+pg[res$id, c1] <- as.data.frame(res[, ..cnt])
+#
 test1 <- as.integer(unlist(strsplit(pg$"Peptide counts (all)", ";")))
 test2 <- as.integer(unlist(strsplit(pg$"Peptide counts (unique)", ";")))
 test3 <- as.integer(unlist(strsplit(pg$"Peptide counts (razor+unique)", ";")))
@@ -1018,8 +832,6 @@ f0 <- \(x) {
   #}
   return(res)
 }
-#environment(f0) <- .GlobalEnv
-#pg[, c1] <- as.data.frame(t(parallel::parApply(parClust, pg[, c2], 1L, \(x) {
 source(parSrc)
 pg[, c1] <- t(parallel::parApply(parClust, tmp2[, c2], 1L, f0))
 # Note:
@@ -1082,7 +894,6 @@ f0 <- \(x) { #x <- tmp2[1L]
     res2 <- paste(res[[c2[1L]]], collapse = ";")
     if (length(ca) == 1L) { res2 <- c(res2, paste(res[[ca]], collapse = ";")) }
     if (length(cb) == 1L) {
-      #y <- aggregate(res[[cb]], list(res[[cb]]), length)
       y <- data.table::data.table(a = res[[cb]])
       y <- y[, .(x = length(a)),
              by = .(Group.1 = a)]
@@ -1102,85 +913,47 @@ pg[, c1] <- tst2
 pg$"Number of proteins" <- as.integer(pg$"Number of proteins")
 DB$temp <- NULL
 DB$"Sequence length" <- nchar(DB$Sequence)
-tmp1 <- DB[, c("Protein ID", "MW [kDa]", "Sequence length")]
-tmp2 <- vapply(strsplit(pg$"Leading protein IDs", ";"), \(x) { x[1L] }, "")
-tmpFls <- vapply(1L:2L, \(x) { tempfile(fileext = ".RDS") }, "")
-parallel::clusterExport(parClust, "tmpFls", envir = environment())
-readr::write_rds(tmp1, tmpFls[1L])
-readr::write_rds(tmp2, tmpFls[2L])
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-  assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-  return()
-}))
-unlink(tmpFls)
-f0 <- \(x) { unlist(tmp1[match(x, tmp1$"Protein ID"), c("MW [kDa]", "Sequence length")]) }
-#environment(f0) <- .GlobalEnv
-pg[, c("Mol. weight [kDa]", "Sequence length")] <- as.data.frame(t(parallel::parSapply(parClust, tmp2, f0)))
-f0 <- \(x) { paste(tmp1$"Sequence length"[match(x, tmp1$"Protein ID")], collapse = ";") } # (I checked, the order is fine) 
-#environment(f0) <- .GlobalEnv
-pg$"Sequence lengths" <- parallel::parSapply(parClust, tmp2, f0)
-tmp1 <- pg$.pep.ids
-tmp2 <- seq$id
-tmp3 <- nchar(gsub(paste(c(AA, "_"), collapse = "|"), "", seq$"Modified sequence"))
-tmpFls <- vapply(1L:3L, \(x) { tempfile(fileext = ".RDS") }, "")
-parallel::clusterExport(parClust, "tmpFls", envir = environment())
-readr::write_rds(tmp1, tmpFls[1L])
-readr::write_rds(tmp2, tmpFls[2L])
-readr::write_rds(tmp3, tmpFls[3L])
-invisible(parallel::clusterCall(parClust, \() {
-  assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-  assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-  assign("tmp3", readr::read_rds(tmpFls[3L]), .GlobalEnv)
-  return()
-}))
-unlink(tmpFls)
-f0 <- \(x) { #x <- tmp1[1L]
-  x <- unlist(x)
-  x <- tmp3[match(x, tmp2)]
-  x <- c("", "+")[min(x > 0L)+1L]
-  return(x)
+pg[, c("Mol. weight [kDa]", "Sequence length")] <- DB[match(sub(";.*", "", pg$"Leading protein IDs"), DB$"Protein ID"),
+                                                      c("MW [kDa]", "Sequence length")]
+tmp1 <- listMelt(strsplit(pg$"Leading protein IDs", ";"), asDT = TRUE)
+tmp1$L <- as.character(DB$`Sequence length`[match(tmp1$value, DB$`Protein ID`)])
+tmp1 <- tmp1[, .(lengths = paste(L, collapse = ";")),
+             by = (row = L1)]
+pg$"Sequence lengths2" <- tmp1$lengths[match(1L:nrow(pg), tmp1$row)]
+tmp1 <- listMelt(pg$.pep.ids, ColNames = c("pepID", "row"), asDT = TRUE)
+tmp2 <- nchar(gsub(paste(c(AA, "_"), collapse = "|"), "", seq$"Modified sequence"))
+tmp1$tmp2 <- tmp2[match(tmp1$pepID, seq$id)]
+f0 <- \(x) {
+  c("", "+")[min(x > 0L)+1L]
 }
-#environment(f0) <- .GlobalEnv
-temp <- parallel::parSapply(parClust, tmp1, f0)
+tmp1 <- tmp1[, .(tst = f0(tmp2)),
+             by = .(row = row)]
+temp <- tmp1$tst[match(1L:nrow(pg), tmp1$row)]
 u <- unique(temp)
-if (length(u) > 1L) {
-  pg$"Only identified by site" <- temp
-} else {
-  if (u == "+") { warning("Do we really expect all of our peptides to be modified?") }
-  pg$"Only identified by site" <- temp
+if (identical(u, "+")) {
+  warning("Do we really expect all of our peptides to be modified?")
 }
+pg$"Only identified by site" <- temp
 if (!misFun(Ev)) {
   seq$.Evidence.IDs <- strsplit(seq$"Evidence IDs", ";")
-  tmp1 <- pg$.pep.ids
-  tmp2 <- seq[, c("id", ".Evidence.IDs")]
-  tmpFls <- vapply(1L:2L, \(x) { tempfile(fileext = ".RDS") }, "")
-  parallel::clusterExport(parClust, "tmpFls", envir = environment())
-  readr::write_rds(tmp1, tmpFls[1L])
-  readr::write_rds(tmp2, tmpFls[2L])
-  invisible(parallel::clusterCall(parClust, \() {
-    assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-    assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-    return()
-  }))
-  unlink(tmpFls)
-  f0 <- \(x) {
-    x <- unlist(x)
-    paste(sort(as.integer(unique(unlist(tmp2$.Evidence.IDs[match(x, tmp2$id)])))),
-          collapse = ";")
-  }
-  #environment(f0) <- .GlobalEnv
-  pg$"Evidence IDs" <- parallel::parSapply(parClust, tmp1, f0)
+  tmp2 <- tmp1 <- listMelt(pg$.pep.ids, ColNames = c("pepID", "row"))
+  tmp2$evIDs <- seq$.Evidence.IDs[match(tmp2$pepID, seq$id)]
+  tmp2 <- listMelt(tmp2$evIDs, ColNames = c("evID", "tmpRow"), asDT = TRUE)
+  tmp2[, c("pepID", "row")] <- tmp1[tmp2$tmpRow, c("pepID", "row")]
+  tmp2 <- tmp2[, .(evIDs = paste(sort(as.integer(unique(evID))), collapse = ";")),
+               by = .(row = row)]
+  pg$"Evidence IDs" <- tmp2$evIDs[match(1L:nrow(pg), tmp2$row)]
   Ev$"Protein group IDs" <- seq$"Protein group IDs"[match(Ev$"Modified sequence", seq$"Modified sequence")]
   if ("MS/MS count" %in% colnames(Ev)) {
-    temp <- aggregate(Ev$"MS/MS count", list(Ev$"Modified sequence"), sum)
-    seq$"MS/MS count" <- temp$x[match(seq$"Modified sequence", temp$Group.1)]
-    temp <- listMelt(seq$.Protein.group.IDs, seq$"MS/MS count", c("Protein group IDs", "MS/MS count"))
-    temp <- aggregate(as.integer(temp$"MS/MS count"),
-                      list(temp$"Protein group IDs"),
-                      sum)
-    colnames(temp) <- c("Protein group IDs", "MS/MS count")
-    pg$"MS/MS count" <- temp$"MS/MS count"[match(pg$id, temp$"Protein group IDs")]
+    temp <- data.table::setDT(Ev[, c("MS/MS count", "Modified sequence")])
+    temp <- temp[, .(n_MS2s = sum(`MS/MS count`)),
+                 keyby = .(modSeq = `Modified sequence`)]
+    seq$"MS/MS count" <- temp$n_MS2s[match(seq$"Modified sequence", temp$modSeq)]
+    temp <- listMelt(seq$.Protein.group.IDs, seq$"MS/MS count", c("pgIDs", "n_MS2s"), TRUE)
+    temp$n_MS2s <- as.integer(temp$n_MS2s)
+    temp <- temp[, .(n_MS2s = sum(n_MS2s)),
+                 keyby = .(pgIDs = pgIDs)]
+    pg$"MS/MS count" <- temp$n_MS2s[match(pg$id, temp$pgIDs)]
   }
   # Note:
   # I don't understand how MaxQuant determines identification type.
@@ -1192,33 +965,23 @@ pg$"Also contains" <- NULL
 pg$lead.protein.ids <- NULL
 pg$unique.pep.ids <- NULL
 pg$"Unique peptide IDs" <- ""
-temp <- seq[!grepl(";", seq$"Protein group IDs"), c("id", "Protein group IDs")]
-temp <- aggregate(temp$id, list(temp$"Protein group IDs"), \(x) {
-  paste(sort(x), collapse = ";")
-})
-w <- which(pg$id %in% temp$Group.1)
-pg$"Unique peptide IDs"[w] <- temp$x[match(pg$id[w], temp$Group.1)]
+temp <- data.table::setDT(seq[!grepl(";", seq$"Protein group IDs"),
+                              c("id", "Protein group IDs")])
+temp <- temp[, .(ids = paste(sort(id), collapse = ";")),
+             keyby = .(pgIDs = `Protein group IDs`)]
+w <- which(pg$id %in% temp$pgIDs)
+pg$"Unique peptide IDs"[w] <- temp$ids[match(pg$id[w], temp$pgIDs)]
 # Some more annotations
 if ("Common Name" %in% colnames(DB)) {
-  tmp1 <- DB[, c("Protein ID", "Common Name")]
-  tmp2 <- strsplit(pg$"Leading protein IDs", ";")
-  tmpFls <- vapply(1L:2L, \(x) { tempfile(fileext = ".RDS") }, "")
-  parallel::clusterExport(parClust, "tmpFls", envir = environment())
-  readr::write_rds(tmp1, tmpFls[1L])
-  readr::write_rds(tmp2, tmpFls[2L])
-  invisible(parallel::clusterCall(parClust, \() {
-    assign("tmp1", readr::read_rds(tmpFls[1L]), .GlobalEnv)
-    assign("tmp2", readr::read_rds(tmpFls[2L]), .GlobalEnv)
-    return()
-  }))
-  unlink(tmpFls)
-  f0 <- \(x) {
-    x <- tmp1$"Common Name"[match(unlist(x), tmp1$"Protein ID")]
-    x <- x[(!is.na(x)) & (x != "")]
-    paste(x, collapse = ";")
-  }
-  #environment(f0) <- .GlobalEnv
-  pg$"Common Names" <- parallel::parSapply(parClust, tmp2, f0)
+  tmp1 <- listMelt(strsplit(pg$"Leading protein IDs", ";"), ColNames = c("leadPrIDs", "row"), asDT = TRUE)
+  tmp1$name <- DB$"Common Name"[match(tmp1$leadPrIDs, db$"Protein ID")]
+  tmp1 <- tmp1[(!is.na(tmp1$name)) & (tmp1$name != ""),]
+  tmp1 <- tmp1[, .(name = paste(name, collapse = ";")),
+               by = .(row = row)]
+  pg$"Common Names" <- tmp1$name[match(1L:nrow(pg), tmp1$row)]
+  w <- which(is.na(pg$"Common Names"))
+  pg$"Common Names"[w] <- ""
+  #
   w <- which(pg$"Common Names" == "")
   if (length(w)) { if ("Protein names" %in% colnames(pg)) {
     pg$"Common Names"[w] <- pg$"Protein names"[w]
@@ -1242,9 +1005,8 @@ if ("Common Name" %in% colnames(DB)) {
 }
 # Taxonomy
 if (!is.na(dbOrgCol)) {
-  tmp <- listMelt(strsplit(pg$`Protein IDs`, ";"), ColNames = c("ID", "Row"))
+  tmp <- listMelt(strsplit(pg$`Protein IDs`, ";"), ColNames = c("ID", "Row"), asDT = TRUE)
   tmp$Org <- DB[match(tmp$ID, DB$`Protein ID`), dbOrgCol]
-  tmp <- data.table::as.data.table(tmp)
   tmp <- tmp[, .(Org = paste(sort(unique(Org)), collapse = ";")),
              by = .(Row = Row)]
   tmp <- as.data.frame(tmp)

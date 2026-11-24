@@ -634,7 +634,7 @@ Expr.root.full <- paste0(Expr.root, " - ")
 # Now get peptides average intensity
 # When we throw away extra peptides (when we have more than maxN, we want to use in priority the high intensity ones),
 # we will use this to decide which to keep.
-tmp1 <- data.table::as.data.table(Pep[, c(pep_IDs, Pep.Intens.Nms), drop = FALSE])
+tmp1 <- data.table::setDT(Pep[, c(pep_IDs, Pep.Intens.Nms), drop = FALSE])
 tmp1 <- data.table::melt(tmp1, id.vars = pep_IDs)
 colnames(tmp1)[1L] <- "pepID"
 tmp1 <- tmp1[is.finite(tmp1$value),]
@@ -647,11 +647,13 @@ if (N_unique) {
   quant_pep_IDsU <- quant_pep_IDsU[quant_pep_IDsU$pep %in% quant_pep_IDsA$pep,]
   quant_pep_IDsA <- quant_pep_IDsA[!quant_pep_IDsA$pep %in% quant_pep_IDsU$pep,]
 }
-quant_pep_IDsA <- data.table::as.data.table(quant_pep_IDsA[, c("pep", "PG")])
+data.table::setDT(quant_pep_IDsA)
+quant_pep_IDsA <- quant_pep_IDsA[, c("pep", "PG")]
 nms <- Prot$temp_IDs
 if (N_unique) {
   #
-  quant_pep_IDsU <- data.table::as.data.table(quant_pep_IDsU[, c("pep", "PG")])
+  data.table::setDT(quant_pep_IDsU)
+  quant_pep_IDsU <- quant_pep_IDsU[, c("pep", "PG")]
   #
   # Sort by decreasing intensities and convert to list
   # - Uniques
@@ -822,11 +824,11 @@ if (Priority == "rat") {
 # Re-order by intensity
 tmpPep$AvgInt <- rowMeans(tmpPep[, Pep.Intens.Nms, drop = FALSE], na.rm = TRUE)
 tmpPep <- tmpPep[order(tmpPep$AvgInt, decreasing = TRUE),]
-quant_pep_IDs2 <- listMelt(quant_pep_IDs, ColNames = c("id", "PG"))
+quant_pep_IDs2 <- listMelt(quant_pep_IDs, ColNames = c("id", "PG"), asDT = TRUE)
 quant_pep_IDs2$mtch <- match(quant_pep_IDs2$id, tmpPep[[pep_IDs]])
 quant_pep_IDs2 <- quant_pep_IDs2[order(quant_pep_IDs2$mtch, decreasing = FALSE),]
-quant_pep_IDs2 <- data.table::as.data.table(quant_pep_IDs2)
-quant_pep_IDs2 <- quant_pep_IDs2[, .(IDs = list(id)), by = .(PG = PG)]
+quant_pep_IDs2 <- quant_pep_IDs2[, .(IDs = list(id)),
+                                 by = .(PG = PG)]
 quant_pep_IDs2 <- setNames(quant_pep_IDs2$IDs, quant_pep_IDs2$PG)
 quant_pep_IDs[names(quant_pep_IDs2)] <- quant_pep_IDs2[names(quant_pep_IDs2)] # There are some empty entries in quant_pep_IDs: proteins with no peptides eligible for quant
 rm(quant_pep_IDs2)
@@ -1176,7 +1178,7 @@ if (!skip_reScaling) {
     if (is.finite(reSc_topN)) {
       rescVal <- rescVal[rescVal$Rank <= reSc_topN,]
     }
-    rescVal <- data.table::as.data.table(rescVal)
+    data.table::setDT(rescVal)
     if (reSc_is_topN && topN_correct) {
       # Not sure about this...
       Md <- median(rescVal$avgPepInt, na.rm = TRUE)

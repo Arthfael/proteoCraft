@@ -58,8 +58,8 @@ if (runRankAbundPlots || runProfPlots) {
   }
   tstOrg2 %<o% c()
   if (tstOrg) {
-    tmp1 <- data.table::as.data.table(listMelt(setNames(strsplit(PG$`Protein IDs`, ";"), 1L:nrow(PG))))
-    tmp2 <- data.table::as.data.table(listMelt(setNames(strsplit(pep$Proteins, ";"), 1L:nrow(pep))))
+    tmp1 <- listMelt(setNames(strsplit(PG$`Protein IDs`, ";"), 1L:nrow(PG)), asDT = TRUE)
+    tmp2 <- listMelt(setNames(strsplit(pep$Proteins, ";"), 1L:nrow(pep)), asDT = TRUE)
     tmp <- base::union(tmp1$value, tmp2$value)
     tmp <- data.frame(ID = tmp,
                       Org = db[match(tmp, db$`Protein ID`),
@@ -71,8 +71,10 @@ if (runRankAbundPlots || runProfPlots) {
     f0 <- \(x) {
       paste(base::union(Org$Organism, sort(x)), collapse = ";")
     }
-    tmp1 <- tmp1[, .(Org = f0(Org)), by = .(row = as.integer(L1))]
-    tmp2 <- tmp2[, .(Org = f0(Org)), by = .(row = as.integer(L1))]
+    tmp1 <- tmp1[, .(Org = f0(Org)),
+                 by = .(row = as.integer(L1))]
+    tmp2 <- tmp2[, .(Org = f0(Org)),
+                 by = .(row = as.integer(L1))]
     PG$"Org. label" <- tmp1$Org[match(1L:nrow(PG), tmp1$row)]
     pep$"Org. label" <- tmp2$Org[match(1L:nrow(pep), tmp2$row)]
     PG$"Org. label"[PG$`Potential contaminant` == "+"] <- "Contaminant"

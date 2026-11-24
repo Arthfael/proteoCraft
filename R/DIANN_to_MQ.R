@@ -558,13 +558,13 @@ DIANN_to_MQ <- function(DIANN_fl,
     tmpLst$Verbose[wF] <- paste0("(", allPTMs$"Full name"[mF], ")")
   }
   # Important: create data.tables individually, or use data.table::copy()
-  tmp1 <- data.table::as.data.table(tmpLst[, c("modSeq", "wh")])
-  tmp2 <- data.table::as.data.table(tmpLst[, c("Verbose", "wh")])
+  tmp1 <- data.table::setDT(tmpLst[, c("modSeq", "wh")])
+  tmp2 <- data.table::setDT(tmpLst[, c("Verbose", "wh")])
   tmp3 <- tmpLst
   tmp3$Mods <- gsub("^\\(|\\)$", "", tmp3$Verbose)
   tmp3 <- tmp3[tmp3$Mods %in% allPTMs$"Full name", c("Mods", "wh")]
   tmp3$Mods <- allPTMs$Mark[match(tmp3$Mods, allPTMs$"Full name")]
-  tmp3 <- data.table::as.data.table(tmp3)
+  data.table::setDT(tmp3)
   tmp1 <- tmp1[, .(modSeq = paste0(modSeq, collapse = "")), by = .(wh = wh)]
   tmp2 <- tmp2[, .(Verbose = paste0(Verbose, collapse = "")), by = .(wh = wh)]
   tmp3 <- tmp3[, .(n = .N), by = .(wh = wh, Mods = Mods)]
@@ -606,7 +606,7 @@ DIANN_to_MQ <- function(DIANN_fl,
   mss <- parallel::parSapply(cl, uS, Peptides::mw, monoisotopic = TRUE)
   tmp1$Mass[wSeq] <- mss[match(tmp1$Verbose[wSeq], uS)]
   EV$"Theoretical mass"[wNotMod] <- mss[match(EV$Sequence[wNotMod], uS)]
-  tmp1 <- data.table::as.data.table(tmp1)
+  data.table::setDT(tmp1)
   tmp1 <- tmp1[, .(Mass = sum(Mass)), by = .(wh = wh)]
   tmp1$Orig <- sub("^_", "", sub("_$", "", uMdSq[tmp1$wh]))
   uM <- match(EV$"Mod. seq. (DiaNN format)"[wMod], tmp1$Orig)
