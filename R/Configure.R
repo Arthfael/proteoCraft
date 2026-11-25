@@ -4,7 +4,7 @@
 #' Configuration function to run once at least after first installation, and once in a while after updating the package.
 #' 
 #' @param updateOntologies Should we update ontologies? This is a very slow process, so FALSE by default.
-#' @param updateLoc Should we update default folder locations? FALSE by default.
+#' @param updateLoc Should we update all default folder locations? If FALSE (default), we will only update un-defined folders.
 #' 
 #' @details
 #' This function:
@@ -25,7 +25,9 @@
 
 Configure <- function(updateOntologies = FALSE,
                       updateLoc = FALSE) {
+  #DefArg(Configure)
   #updateOntologies = TRUE
+  #updateLoc = TRUE
   RPath <- as.data.frame(library()$results)
   RPath <- normalizePath(RPath$LibPath[match("proteoCraft", RPath$Package)], winslash = "/")
   libPath <- paste0(RPath, "/proteoCraft")
@@ -96,19 +98,22 @@ Configure <- function(updateOntologies = FALSE,
     which((locDirs$Path == "") | (!file.exists(locDirs$Path)))
   }
   if (length(w)) {
-    for (i in w) {
+    for (i in w) { #i <- w[1L]
       dflt <- locDirs$Path[i]
-      if (locDirs$Folder[i] == "Python") {
+      nm <- locDirs$Folder[i]
+      if (nm == "Python") {
         if (is.na(dflt) || (!file.exists(dflt))) { dflt <- "C:/PROGRA~1/*.exe" }
-        tmp <- rstudioapi::selectFile(paste0("Select ", locDirs$Folder[i], " executable (.exe file)"),
+        tmp <- rstudioapi::selectFile(paste0("Select ", toupper(nm), " executable (.exe file)"),
                                       path = dflt)
-        tmp <- tmp[file.exists(tmp)]
+        if (length(tmp)) { tmp <- tmp[file.exists(tmp)] }
       } else {
         if (is.na(dflt) || (!dir.exists(dflt))) {
-          dflt <- gsub("( folder)+", " folder", paste0("proteoCraft config: select ", locDirs$Folder[i], " folder"))
+          if (nm == "Archive folder") { nm <- "MS raw files archive folder" }
+          if (nm == "Archive folder (searches)") { nm <- "Search results archive folder" }
+          dflt <- gsub("( folder)+", " folder", paste0("proteoCraft config: select ", toupper(nm), " folder"))
         }
         tmp <- rstudioapi::selectDirectory(dflt)
-        tmp <- tmp[dir.exists(tmp)]
+        if (length(tmp)) { tmp <- tmp[dir.exists(tmp)] }
       }
       tmp <- tmp[!is.na(tmp)]
       if (length(tmp) == 1L) {

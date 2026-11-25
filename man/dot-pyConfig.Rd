@@ -4,11 +4,44 @@
 \alias{.pyConfig}
 \title{.pyConfig}
 \usage{
-.pyConfig(pathWarn = FALSE)
+.pyConfig(
+  minVersion = "3.9",
+  maxVersion = NULL,
+  venvRoot = NULL,
+  venvPrefix = "py",
+  ontology = TRUE,
+  addToPath = TRUE,
+  reinstall = FALSE,
+  pathWarn = FALSE,
+  verbose = TRUE
+)
 }
 \arguments{
-\item{pathWarn}{Logical, default = FALSE. If TRUE, and it finds in the output of Sys.getenv("PATH") some paths which do not exist, this will issue a warning. However, this may trigger false alerts - it seems that some versions of R/RStudio have paths there which have since slightly changed - without breaking functionality.}
+\item{minVersion, maxVersion}{Character, allowed Python versions (maxVersion = NULL: no limit).}
+
+\item{venvRoot}{Folder in which to create the python virtual environment.}
+
+\item{venvPrefix}{Default = "py", prefix for the name of the virtual environment. Will be supplemented with the python version, e.g. "py3.14"}
+
+\item{ontology}{Logical, default = TRUE. Install the sdrf-pipelines[ontology] extra.}
+
+\item{addToPath}{Logical, default = TRUE. Append the venv's script directory to PATH for this R session.\cr
+(The returned `parse_sdrf` full path works regardless.)}
+
+\item{reinstall}{Logical, default = FALSE. If TRUE, rebuild the venv even if a working one exists.}
+
+\item{pathWarn}{Logical, default = FALSE. Warn about non-existent entries in PATH (may give false alerts).}
+
+\item{verbose}{Logical, default = TRUE.}
+}
+\value{
+A list with elements out (logical), vers, python (venv interpreter), venv,
+ parse_sdrf (full path of the executable) and log (what happened). On failure out = FALSE.
 }
 \description{
-A function to automatically check our python configuration, upgrade pip, install sdrf-pipelines and check that python scripts is in path.
+Finds a usable Python (>= minVersion), creates a dedicated virtual environment for it (under tools::R_user_dir("proteoCraft", "data")), installs sdrf-pipelines in it, and checks that the parse_sdrf command works.\cr
+Nothing is installed into the user's own Python.
+}
+\details{
+This new version is 99% the work of Claude.AI and should be a vast improvement over my previous version.
 }

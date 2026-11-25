@@ -153,7 +153,6 @@
   taxize::get_tsn
   taxize::children
   TeachingDemos::char2seed
-  tools::md5sum
   truncdist::dtrunc
   vsn::justvsn
   vsn::meanSdPlot

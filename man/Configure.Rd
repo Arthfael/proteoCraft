@@ -9,7 +9,7 @@ Configure(updateOntologies = FALSE, updateLoc = FALSE)
 \arguments{
 \item{updateOntologies}{Should we update ontologies? This is a very slow process, so FALSE by default.}
 
-\item{updateLoc}{Should we update default folder locations? FALSE by default.}
+\item{updateLoc}{Should we update all default folder locations? If FALSE (default), we will only update un-defined folders.}
 }
 \value{
 This function does not return anything.
