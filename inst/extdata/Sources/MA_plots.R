@@ -29,8 +29,7 @@ data <- data[is.na(data$"Potential contaminant") | (data$"Potential contaminant"
 quntKol <- if (LabelType == "Isobaric") {
   grep(paste0(topattern(ev.ref["Original"]), "[0-9]+$"), colnames(data), value = TRUE)
 } else { ev.col["Original"] }
-w <- which(rowSums(data[, quntKol, drop = FALSE], na.rm = TRUE) > 0)
-data <- data[w,]
+data <- data[rowSums(data[, quntKol, drop = FALSE], na.rm = TRUE) > 0,]
 if (!"Fraction" %in% colnames(data)) { data$Fraction <- 1L }
 Fraction <- sort(unique(data$Fraction), decreasing = FALSE) # actually useful!
 Experiment <- Exp # This too!
@@ -73,10 +72,10 @@ for (grp in grps) { #grp <- grps[1L]
   if (LabelType == "Isobaric") {
     smpls <- sub(topattern(ev.ref["Original"]), "", quntKol)
     data2a <- data.table::setDT(data2[, quntKol])
-    colnames(data2a) <- quntKol
-    data2a$Group <- tmp
+    data2a[, Group := tmp]
     data2a <- data2a[, lapply(.SD, sum, na.rm = TRUE),
-                     keyby = Group]
+                     keyby = Group,
+                     .SDcols = quntKol] # N.B: the explicit .SDcols is redundant here, but would be necessary if we changed keyby to .(Something = Group)
     colnames(data2a) <- c("Group", quntKol)
     data2a <- as.data.frame(data2a)
     data2a[, smpls] <- log10(data2a[, quntKol])

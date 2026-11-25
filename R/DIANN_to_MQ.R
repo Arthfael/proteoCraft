@@ -565,9 +565,12 @@ DIANN_to_MQ <- function(DIANN_fl,
   tmp3 <- tmp3[tmp3$Mods %in% allPTMs$"Full name", c("Mods", "wh")]
   tmp3$Mods <- allPTMs$Mark[match(tmp3$Mods, allPTMs$"Full name")]
   data.table::setDT(tmp3)
-  tmp1 <- tmp1[, .(modSeq = paste0(modSeq, collapse = "")), by = .(wh = wh)]
-  tmp2 <- tmp2[, .(Verbose = paste0(Verbose, collapse = "")), by = .(wh = wh)]
-  tmp3 <- tmp3[, .(n = .N), by = .(wh = wh, Mods = Mods)]
+  tmp1 <- tmp1[, .(modSeq = paste0(modSeq, collapse = "")),
+               by = .(wh = wh)]
+  tmp2 <- tmp2[, .(Verbose = paste0(Verbose, collapse = "")),
+               by = .(wh = wh)]
+  tmp3 <- tmp3[, .(n = .N),
+               by = .(wh = wh, Mods = Mods)]
   tmp3$n <- as.character(tmp3$n)
   tmp3$modTag <- tmp3$Mods
   w2p <- which(tmp3$n != "1")
@@ -607,7 +610,8 @@ DIANN_to_MQ <- function(DIANN_fl,
   tmp1$Mass[wSeq] <- mss[match(tmp1$Verbose[wSeq], uS)]
   EV$"Theoretical mass"[wNotMod] <- mss[match(EV$Sequence[wNotMod], uS)]
   data.table::setDT(tmp1)
-  tmp1 <- tmp1[, .(Mass = sum(Mass)), by = .(wh = wh)]
+  tmp1 <- tmp1[, .(Mass = sum(Mass)),
+               by = .(wh = wh)]
   tmp1$Orig <- sub("^_", "", sub("_$", "", uMdSq[tmp1$wh]))
   uM <- match(EV$"Mod. seq. (DiaNN format)"[wMod], tmp1$Orig)
   stopifnot(sum(is.na(uM)) == 0L)

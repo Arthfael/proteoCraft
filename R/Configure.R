@@ -98,15 +98,21 @@ Configure <- function(updateOntologies = FALSE,
   if (length(w)) {
     for (i in w) {
       dflt <- locDirs$Path[i]
-      locDirs$Path[i] <- if (locDirs$Folder[i] == "Python") {
+      if (locDirs$Folder[i] == "Python") {
         if (is.na(dflt) || (!file.exists(dflt))) { dflt <- "C:/PROGRA~1/*.exe" }
-        rstudioapi::selectFile(paste0("Select ", locDirs$Folder[i], " executable (.exe file)"),
-                               path = dflt)
+        tmp <- rstudioapi::selectFile(paste0("Select ", locDirs$Folder[i], " executable (.exe file)"),
+                                      path = dflt)
+        tmp <- tmp[file.exists(tmp)]
       } else {
         if (is.na(dflt) || (!dir.exists(dflt))) {
           dflt <- gsub("( folder)+", " folder", paste0("proteoCraft config: select ", locDirs$Folder[i], " folder"))
         }
-        rstudioapi::selectDirectory(dflt)
+        tmp <- rstudioapi::selectDirectory(dflt)
+        tmp <- tmp[dir.exists(tmp)]
+      }
+      tmp <- tmp[!is.na(tmp)]
+      if (length(tmp) == 1L) {
+        locDirs$Path[i] <- tmp
       }
     }
     writeDefltLoc(locDirsFl2, locDirs)

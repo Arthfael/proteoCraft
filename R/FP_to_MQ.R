@@ -773,17 +773,14 @@ FP_to_MQ <- function(FP_Workflow,
   if (!length(pKol)) { stop("No PSMs quality column detected!") } else {
     EV$PEP <- 1 - PSMs[[pKol]]
   }
-  a1 <- strsplit(PSMs$Protein, "[,;] ?")
-  a2 <- strsplit(PSMs$"Mapped Proteins", "[,;] ?")
-  a1 <- listMelt(a1, ColNames = c("prot", "row"))
-  a2 <- listMelt(a2, ColNames = c("prot", "row"))
+  a1 <- listMelt(strsplit(PSMs$Protein, "[,;] ?"), ColNames = c("prot", "row"), asDT = TRUE)
+  a2 <- listMelt(strsplit(PSMs$"Mapped Proteins", "[,;] ?"), ColNames = c("prot", "row"), asDT = TRUE)
   tmp <- rbind(a1, a2)
   if (UniProtIDs) {
     tmp$prot <- sub("\\|[^|]+$", "",
                     sub("^[a-z]{2}\\|", "", tmp$prot))
   }
   tmp <- tmp[order(tmp$row, tmp$prot),]
-  data.table::setDT(tmp)
   tmp <- tmp[, .(prot2 = list(unique(prot))),
              by = .(row = row, prot = prot)]
   tmp <- tmp[, .(prots = paste(prot2, collapse = ";")),

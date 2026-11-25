@@ -60,14 +60,15 @@ if (LocAnalysis) {
                           MQ.Exp = MQ.Exp,
                           Experiment = Experiment)]
     tmp3 <- listMelt(Exp.map$MQ.Exp, Exp.map$Ref.Sample.Aggregate)
-    tmp2a$RSA <- tmp3$L1[match(tmp2a$MQ.Exp, tmp3$value)]
+    tmp2a[, RSA := tmp3[["L1"]][match(MQ.Exp, tmp3$value)]]
     tmp2 <- data.frame(`Modified sequence` = pep$"Modified sequence", check.names = FALSE)
     for (rsa in tmp3$L1) { #rsa <- tmp3$L1[1L]
       kol2c <- paste0(pep.ref["Original"], rsa)
       tmp2[[kol2c]] <- 0
       w <- which(tmp2a$RSA == rsa)
       tmp2b <- copy(tmp2a)
-      tmp2b <- tmp2b[w, .(x = sum(x)), by = .(`Modified sequence`)]
+      tmp2b <- tmp2b[w, .(x = sum(x)),
+                     by = .(`Modified sequence`)]
       tmp2b <- as.data.frame(tmp2b)
       w <- which(tmp2$"Modified sequence" %in% tmp2b$`Modified sequence`)
       tmp2[w, kol2c] <- tmp2b$x[match(tmp2$"Modified sequence"[w], tmp2b$`Modified sequence`)]

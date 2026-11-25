@@ -413,9 +413,9 @@ if (runPepper) {
   # Test results ourselves
   requireNamespace("data.table")
   g <- grep(";", ev$Proteins, invert = TRUE)
-  tmp <- ev[g, c("Modified sequence", "Proteins", "Experiment", ref, nuRef)]
+  tmp <- data.table::setDT(ev[g,
+                              c("Modified sequence", "Proteins", "Experiment", ref, nuRef)])
   colnames(tmp) <- c("ModSeq", "Proteins", "Experiment", "Original", "Pepper")
-  data.table::setDT(tmp)
   obj <- setNames(c("Original", "Pepper"), c("Before", "After"))
   call <- paste0(vapply(Exp, \(x) { paste0(x, " = sd(", x, ")") }, ""), collapse = ", ") # start building our call
   for (i in 1L:2L) {

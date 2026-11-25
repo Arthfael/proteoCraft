@@ -494,7 +494,7 @@ if ((!!exists("mods_to_Exclude")) && nrow(mods_to_Exclude)) {
 Pep <- Pep[modTst,]
 #
 # Filter temp.list based on filtered peptides
-quant_pep_IDsA <- listMelt(quant_pep_IDs, ColNames = c("pep", "PG"))
+quant_pep_IDsA <- listMelt(quant_pep_IDs, ColNames = c("pep", "PG"), asDT = TRUE)
 quant_pep_IDsA <- quant_pep_IDsA[quant_pep_IDsA$pep %in% Pep[[pep_IDs]],]
 #length(unique(quant_pep_IDsA$pep)) == nrow(Pep)
 #
@@ -543,10 +543,10 @@ if ((!!exists("mods_to_Exclude")) && nrow(mods_to_Exclude)) {
   if (nrTrm) {
     modTst2 <- rep(TRUE, nrow(quant_pep_IDsA))
     m1 <- match(quant_pep_IDsA$pep, Pep[[pep_IDs]])
-    quant_pep_IDsA$Seq <- Pep$Sequence[m1]
-    quant_pep_IDsA$L <- nchar(quant_pep_IDsA$Seq)
-    quant_pep_IDsA$PG_seq <- Prot[match(quant_pep_IDsA$PG, Prot$temp_IDs), prim_Seq] # We only filter by first accession!!!
-    quant_pep_IDsA$PG_L <- nchar(quant_pep_IDsA$PG_seq)
+    quant_pep_IDsA[, Seq := Sequence[m1]]
+    quant_pep_IDsA[, L := nchar(Seq)]
+    quant_pep_IDsA[, PG_seq := Prot[[prim_Seq]][match(PG, Prot$temp_IDs)]] # We only filter by first accession!!!
+    quant_pep_IDsA[, PG_L := nchar(PG_seq)]
     # Here I think it makes more sense to deal with each pattern separately
     # It will just be easier, because we need to treat matches to protein N- or C-termini differently
     for (i in 1L:nrTrm) { #i <- 1L
@@ -555,14 +555,14 @@ if ((!!exists("mods_to_Exclude")) && nrow(mods_to_Exclude)) {
       if (length(gy)) {
         quant_pep_IDsB <- quant_pep_IDsA[quant_pep_IDsA$pep %in% Pep[gy, pep_IDs],]
         if (grepl("protNterm", Mods2XclTerm$Where[i])) {
-          quant_pep_IDsB$Pep_1b <- quant_pep_IDsB$Pep_1a <- substr(quant_pep_IDsB$PG_seq, 1L, quant_pep_IDsB$L)
+          quant_pep_IDsB[, Pep_1a := substr(PG_seq, 1L, L)][, Pep_1b := Pep_1a]
           w1M <- grep("^M", quant_pep_IDsB$PG_seq) # Allow for N-term methionine loss!
-          quant_pep_IDsB$Pep_1b[w1M] <- substr(quant_pep_IDsB$PG_seq[w1M], 2L, quant_pep_IDsB$L[w1M]+1L)
+          quant_pep_IDsB[w1M, Pep_1b := substr(PG_seq, 2L, L + 1L)]
           quant_pep_IDsB$OK <- (quant_pep_IDsB$Seq != quant_pep_IDsB$Pep_1a)&(quant_pep_IDsB$Seq != quant_pep_IDsB$Pep_1b)
         }
         if (grepl("protCterm", Mods2XclTerm$Where[i])) {
-          quant_pep_IDsB$Pep_2 <- substr(quant_pep_IDsB$PG_seq, quant_pep_IDsB$PG_L-quant_pep_IDsB$L+1L, quant_pep_IDsB$PG_L)
-          quant_pep_IDsB$OK <- quant_pep_IDsB$Seq != quant_pep_IDsB$Pep_2
+          quant_pep_IDsB[, Pep_2 := substr(PG_seq, PG_L-L+1L, PG_L)]
+          quant_pep_IDsB[, OK := (Seq != Pep_2)]
         }
         modTst2[quant_pep_IDsA$pep %in% quant_pep_IDsB$pep[!quant_pep_IDsB$OK]] <- FALSE
       }
@@ -643,26 +643,24 @@ Pep$avgPepInt <- tmp1$value[match(Pep[[pep_IDs]], tmp1$pepID)]
 #
 # If N_unique > 0: update list of peptides to use for quantitation
 if (N_unique) {
-  quant_pep_IDsU <- listMelt(strsplit(Prot[[pg_PepIDs_unique]], ";"), Prot$temp_IDs, c("pep", "PG"))
+  quant_pep_IDsU <- listMelt(strsplit(Prot[[pg_PepIDs_unique]], ";"), Prot$temp_IDs, c("pep", "PG"), TRUE)
   quant_pep_IDsU <- quant_pep_IDsU[quant_pep_IDsU$pep %in% quant_pep_IDsA$pep,]
   quant_pep_IDsA <- quant_pep_IDsA[!quant_pep_IDsA$pep %in% quant_pep_IDsU$pep,]
 }
-data.table::setDT(quant_pep_IDsA)
 quant_pep_IDsA <- quant_pep_IDsA[, c("pep", "PG")]
 nms <- Prot$temp_IDs
 if (N_unique) {
   #
-  data.table::setDT(quant_pep_IDsU)
   quant_pep_IDsU <- quant_pep_IDsU[, c("pep", "PG")]
   #
   # Sort by decreasing intensities and convert to list
   # - Uniques
-  quant_pep_IDsU$int <- Pep$avgPepInt[match(quant_pep_IDsU$pep, Pep[[pep_IDs]])]
+  quant_pep_IDsU[, int := Pep[["avgPepInt"]][match(pep, Pep[[pep_IDs]])]]
   quant_pep_IDsU <- quant_pep_IDsU[order(quant_pep_IDsU$int, decreasing = TRUE),]
   quant_pep_IDsU <- quant_pep_IDsU[, .(pep = list(pep)), by = .(PG = PG)]
   quant_pep_IDsU <- setNames(quant_pep_IDsU$pep, quant_pep_IDsU$PG)
   # - Rest
-  quant_pep_IDsA$int <- Pep$avgPepInt[match(quant_pep_IDsA$pep, Pep[[pep_IDs]])]
+  quant_pep_IDsA[, int := Pep[["avgPepInt"]][match(pep, Pep[[pep_IDs]])]]
   quant_pep_IDsA <- quant_pep_IDsA[order(quant_pep_IDsA$int, decreasing = TRUE),]
 }
 quant_pep_IDsA <- quant_pep_IDsA[, .(pep = list(pep)), by = .(PG = PG)]
@@ -1166,14 +1164,14 @@ if (!skip_reScaling) {
                  Value = rowMeans(allQuants[[RESCALING]][, quntNms, drop = FALSE], na.rm = TRUE))
     }
   } else {
-    rescVal <- tmpPep2[, c("pepID", "PG")]
+    rescVal <- data.table::setDT(tmpPep2[, c("pepID", "PG")])
     m <- match(rescVal$pepID, Pep[[pep_IDs]])
-    rescVal$avgPepInt <- Pep$avgPepInt[m]
+    rescVal[, avgPepInt := Pep$avgPepInt[m]]
     if (reScaling == "weighted.mean") {
-      rescVal$Weights <- Pep$Weights[m]
+      rescVal[, Weights := Pep$Weights[m]]
     }
     if (reSc_is_topN || is.finite(reSc_topN)) {
-      rescVal$Rank <- as.integer(stats::ave(rescVal$PG, rescVal$PG, FUN = seq_along)) # (thanks chatGPT...)
+      rescVal[, Rank := as.integer(stats::ave(PG, PG, FUN = seq_along))] # (thanks chatGPT...)
     }
     if (is.finite(reSc_topN)) {
       rescVal <- rescVal[rescVal$Rank <= reSc_topN,]
@@ -1191,9 +1189,11 @@ if (!skip_reScaling) {
       rescVal$avgPepInt <- rescVal$avgPepInt + Md
     }
     rescVal <- if (reScaling == "weighted.mean") {
-      rescVal[, .(Value = weighted.mean(avgPepInt, Weights, na.rm = TRUE)), by = .(PG = PG)]
+      rescVal[, .(Value = weighted.mean(avgPepInt, Weights, na.rm = TRUE)),
+              by = .(PG = PG)]
     } else {
-      rescVal[, .(Value = reSc_fun(avgPepInt, na.rm = TRUE)), by = .(PG = PG)] 
+      rescVal[, .(Value = reSc_fun(avgPepInt, na.rm = TRUE)),
+              by = .(PG = PG)] 
     }
     rescVal <- as.data.frame(rescVal)
   }

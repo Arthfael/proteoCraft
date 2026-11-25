@@ -1718,7 +1718,8 @@ Sites[, quntCol] <- pep[match(Sites$pepID, pep$id), quntCol]
 Sites2 <- Sites
 Sites2$pepID <- NULL
 Sites2 <- data.table::setDT(Sites2)
-Sites2 <- Sites2[, lapply(.SD, sum, na.rm = TRUE), keyby = Site] # NB: converts all NAs to 0... equivalent but we had NAs, I will re-introduce them
+Sites2 <- Sites2[, lapply(.SD, sum, na.rm = TRUE),
+                 keyby = Site] # NB: converts all NAs to 0... equivalent but we had NAs, I will re-introduce them
 Sites2 <- as.data.frame(Sites2)
 w <- which(as.matrix(Sites2[, quntCol]) == 0, arr.ind = TRUE)
 Sites2[, quntCol][w] <- NA_real_

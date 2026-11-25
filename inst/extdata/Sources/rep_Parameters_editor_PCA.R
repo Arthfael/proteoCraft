@@ -50,7 +50,7 @@ if ((length(MQ.Exp) > 1L) || (LabelType == "Isobaric")) { # Should be always TRU
     kol2 <- sub(topattern(ev.ref["Original"]), "", kol)
     data2 <- data.table::setDT(data[, kol])
     colnames(data2) <- kol2
-    data2$Group <- tmp
+    data2[, Group := tmp]
     data2$MQ.Exp <- ev$MQ.Exp[w]
     data2 <- data2[, lapply(.SD, sum, na.rm = TRUE),
                    keyby = .(Group = Group,

@@ -85,7 +85,8 @@ AdvNorm.IL <- function(df,
     dat2 <- data.table::setDT(dat)
     colnames(dat2)[colnames(dat2) == ids.col] <- "Group.1"
     # Aggregate (if necessary) by ID, using sum:
-    dat2 <- dat2[, lapply(.SD, sum, na.rm = TRUE), by = Group.1, , .SDcols = nms]
+    dat2 <- dat2[, lapply(.SD, sum, na.rm = TRUE),
+                 by = Group.1, , .SDcols = nms]
     #dat2 <- as.data.frame(dat2); dat3 <- as.matrix(dat2[, nms])
     dat3 <- as.matrix(dat2[, ..nms]) # As matrix...
     dat3 <- log10(dat3)

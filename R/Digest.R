@@ -232,7 +232,7 @@ Digest <- function(Seq,
     # Now deal with loose.avoid
     if (length(loose.avoid)) {
       if (TESTING) { print(paste0("Creating effect of patterns partially but not fully blocking digest...")) }
-      temp <- proteoCraft::listMelt(Rs) # Take our current set of digested peptides, where we assumed up to now
+      temp <- proteoCraft::listMelt(Rs, asDT = TRUE) # Take our current set of digested peptides, where we assumed up to now
       # that loose.avoid were stricly blocking
       # Filter by matches to loose.avoids
       gr <- grep(paste(gsub("_", "", loose.avoid), collapse = "|"), temp$value)
@@ -253,7 +253,6 @@ Digest <- function(Seq,
           })), collapse = ";")
           # Collapsing seems actually more efficient here - the vectors end up shorter
         }, "")
-        data.table::setDT(temp)
         temp <- temp[, .(x = paste(value, collapse = ";")),
                      by = .(Group.1 = L1)]
         temp <- setNames(strsplit(temp$x, ";"), temp$Group.1)

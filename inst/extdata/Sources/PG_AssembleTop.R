@@ -44,8 +44,7 @@ if (splitByOrg) {
   for (k in kol) {
     if (is.character(tmpPeps[[k]])) { tmpPeps[[k]] <- strsplit(tmpPeps[[k]], ";") }
   }
-  tmpPeps <- tmpPeps[,
-                     lapply(.SD, \(x) { paste(unique(unlist(x)), collapse = ";") }),
+  tmpPeps <- tmpPeps[, lapply(.SD, \(x) { paste(unique(unlist(x)), collapse = ";") }),
                      keyby = `Modified sequence`]
   tmpPeps <- as.data.frame(tmpPeps)
   pep[, kol] <- tmpPeps[match(pep$`Modified sequence`, tmpPeps$`Modified sequence`), kol]

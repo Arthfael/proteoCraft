@@ -544,7 +544,7 @@ protQuant <- function(Prot,
   Pep <- Pep[modTst,]
   #
   # Filter temp.list based on filtered peptides
-  quant_pep_IDsA <- listMelt(quant_pep_IDs, ColNames = c("pep", "PG"))
+  quant_pep_IDsA <- listMelt(quant_pep_IDs, ColNames = c("pep", "PG"), asDT = TRUE)
   quant_pep_IDsA <- quant_pep_IDsA[quant_pep_IDsA$pep %in% Pep[[pep_IDs]],]
   #length(unique(quant_pep_IDsA$pep)) == nrow(Pep)
   #
@@ -693,16 +693,14 @@ protQuant <- function(Prot,
   #
   # If N_unique > 0: update list of peptides to use for quantitation
   if (N_unique) {
-    quant_pep_IDsU <- listMelt(strsplit(Prot[[pg_PepIDs_unique]], ";"), Prot$temp_IDs, c("pep", "PG"))
+    quant_pep_IDsU <- listMelt(strsplit(Prot[[pg_PepIDs_unique]], ";"), Prot$temp_IDs, c("pep", "PG"), TRUE)
     quant_pep_IDsU <- quant_pep_IDsU[quant_pep_IDsU$pep %in% quant_pep_IDsA$pep,]
     quant_pep_IDsA <- quant_pep_IDsA[!quant_pep_IDsA$pep %in% quant_pep_IDsU$pep,]
   }
-  data.table::setDT(quant_pep_IDsA)
   quant_pep_IDsA <- quant_pep_IDsA[, c("pep", "PG")]
   nms <- Prot$temp_IDs
   if (N_unique) {
     #
-    data.table::setDT(quant_pep_IDsU)
     quant_pep_IDsU <- quant_pep_IDsU[, c("pep", "PG")]
     #
     # Sort by decreasing intensities and convert to list
@@ -877,10 +875,9 @@ protQuant <- function(Prot,
   # Re-order by intensity
   tmpPep$AvgInt <- rowMeans(tmpPep[, Pep.Intens.Nms, drop = FALSE], na.rm = TRUE)
   tmpPep <- tmpPep[order(tmpPep$AvgInt, decreasing = TRUE),]
-  quant_pep_IDs2 <- listMelt(quant_pep_IDs, ColNames = c("id", "PG"))
+  quant_pep_IDs2 <- listMelt(quant_pep_IDs, ColNames = c("id", "PG"), asDT)
   quant_pep_IDs2$mtch <- match(quant_pep_IDs2$id, tmpPep[[pep_IDs]])
   quant_pep_IDs2 <- quant_pep_IDs2[order(quant_pep_IDs2$mtch, decreasing = FALSE),]
-  data.table::setDT(quant_pep_IDs2)
   quant_pep_IDs2 <- quant_pep_IDs2[, .(IDs = list(id)),
                                    by = .(PG = PG)]
   quant_pep_IDs2 <- setNames(quant_pep_IDs2$IDs, quant_pep_IDs2$PG)
@@ -1187,18 +1184,21 @@ protQuant <- function(Prot,
       if (reSc_is_topN && topN_correct) {
         # Not sure about this...
         Md <- median(rescVal$avgPepInt, na.rm = TRUE)
-        tst <- as.data.frame(rescVal[, .(Median = median(avgPepInt, na.rm = TRUE)), by = .(Rank = Rank)])
+        tst <- as.data.frame(rescVal[, .(Median = median(avgPepInt, na.rm = TRUE)),
+                                     by = .(Rank = Rank)])
         tst$Rank <- as.integer(tst$Rank)
         for (i in tst$Rank) {
           wi <- which(rescVal$Rank == i)
-          rescVal$avgPepInt[wi] <- rescVal$avgPepInt[wi]-tst$Median[match(i, tst$Rank)]
+          rescVal$avgPepInt[wi] <- rescVal$avgPepInt[wi] - tst$Median[match(i, tst$Rank)]
         }
         rescVal$avgPepInt <- rescVal$avgPepInt + Md
       }
       rescVal <- if (reScaling == "weighted.mean") {
-        rescVal[, .(Value = weighted.mean(avgPepInt, Weights, na.rm = TRUE)), by = .(PG = PG)]
+        rescVal[, .(Value = weighted.mean(avgPepInt, Weights, na.rm = TRUE)),
+                by = .(PG = PG)]
       } else {
-        rescVal[, .(Value = reSc_fun(avgPepInt, na.rm = TRUE)), by = .(PG = PG)] 
+        rescVal[, .(Value = reSc_fun(avgPepInt, na.rm = TRUE)),
+                by = .(PG = PG)] 
       }
       rescVal <- as.data.frame(rescVal)
     }
