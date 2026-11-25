@@ -18,6 +18,7 @@ saveImgFun <- function(file,
                        N.clust,
                        N.reserved = 1L) {
   TESTING <- FALSE
+  file <- unname(file) # Otherwise this will fail!
   #
   #DefArg(saveImgFun); TESTING <- TRUE
   misFun <- if (TESTING) {

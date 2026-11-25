@@ -16,7 +16,10 @@
 #' 
 #' @export
 
-saveFun <- function(x, file) {
+saveFun <- function(x,
+                    file) {
+  file <- unname(file) # Otherwise this will fail!
+  #
   sz <- as.numeric(object.size(x))
   N <- parallel::detectCores()
   max_threads <- ceiling(N/2)
