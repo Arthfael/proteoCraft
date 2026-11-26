@@ -827,7 +827,7 @@ FP_to_MQ <- function(FP_Workflow,
   #bckpMods[, c("Assigned Modifications", "Observed Modifications")] <- PSMs[, c("Assigned Modifications", "Observed Modifications")]
   #View(bckpMods)
   wMod <- which(PSMs$`Assigned Modifications` != "")
-  tmp <- listMelt(strsplit(PSMs$`Assigned Modifications`[wMod], ", "), wMod, c("PTMsite", "row"))
+  tmp <- listMelt(strsplit(PSMs$`Assigned Modifications`[wMod], ", *"), wMod, c("PTMsite", "row"))
   tmp <- do.call(paste, c(tmp[, c("row", "PTMsite")], sep = "_"))
   tmp <- data.frame(where = sub("\\(.*", "", tmp),
                     shift = sub(".*\\(", "", sub("\\)", "", tmp)))
